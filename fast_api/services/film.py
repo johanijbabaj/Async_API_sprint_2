@@ -3,22 +3,22 @@ from functools import lru_cache
 from typing import List, Optional
 from uuid import UUID
 
-from aioredis import Redis
 from db.elastic import get_elastic
-from db.cache import get_redis
+from db.cache import MemoryCache, get_cache
 from elasticsearch import AsyncElasticsearch
 from fastapi import Depends
 from models.film import Film, FilmBrief
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
+
 class FilmService:
     """
         FilmService содержит бизнес-логику по работе с фильмами.
     """
 
-    def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
-        self.redis = redis
+    def __init__(self, cache: MemoryCache, elastic: AsyncElasticsearch):
+        self.cache = cache
         self.elastic = elastic
 
     async def get_by_id(self, film_id: str) -> Optional[Film]:
@@ -31,7 +31,7 @@ class FilmService:
             if not film:
                 # Если он отсутствует в Elasticsearch, значит, фильма вообще нет в базе
                 return None
-            # Сохраняем фильм  в кеш
+            # Сохраняем фильм в кеш
             await self._put_film_to_cache(film)
 
         return film
@@ -46,22 +46,13 @@ class FilmService:
         return Film(**film_info)
 
     async def _film_from_cache(self, film_id: str) -> Optional[Film]:
-        # Пытаемся получить данные о фильме из кеша, используя команду get
-        # https://redis.io/commands/get
-        data = await self.redis.get(film_id)
+        data = await self.cache.get(film_id)
         if not data:
             return None
-
-        # pydantic предоставляет удобное API для создания объекта моделей из json
-        film = Film.parse_raw(data)
-        return film
+        return Film.parse_raw(data)
 
     async def _put_film_to_cache(self, film: Film):
-        # Сохраняем данные о фильме, используя команду set
-        # Выставляем время жизни кеша — 5 минут
-        # https://redis.io/commands/set
-        # pydantic позволяет сериализовать модель в json
-        await self.redis.set(str(film.uuid), film.json(), expire=FILM_CACHE_EXPIRE_IN_SECONDS)
+        await self.cache.set(str(film.uuid), film.json(), expire=FILM_CACHE_EXPIRE_IN_SECONDS)
 
     async def get_by_genre_id(self,
                               filter_genre: Optional[UUID],
@@ -124,7 +115,7 @@ class FilmService:
                                     page_number: Optional[int]
                                     ) -> List[FilmBrief]:
         key = self._get_films_key(filter_genre, sort, page_size, page_number)
-        data = await self.redis.get(key)
+        data = await self.cache.get(key)
         if not data:
             return []
         films = [FilmBrief(**film) for film in orjson.loads(data)]
@@ -139,20 +130,16 @@ class FilmService:
                                   ):
         key = self._get_films_key(filter_genre, sort, page_size, page_number)
         json = "[{}]".format(','.join(film.json() for film in films))
-        await self.redis.set(key, json, expire=FILM_CACHE_EXPIRE_IN_SECONDS)
+        await self.cache.set(key, json, FILM_CACHE_EXPIRE_IN_SECONDS)
 
     def _get_films_key(self, *args):
         key = ("films", args)
         return str(key)
 
 
-# get_film_service — это провайдер FilmService.
-# С помощью Depends он сообщает, что ему необходимы Redis и Elasticsearch
-# Для их получения вы ранее создали функции-провайдеры в модуле db
-# Используем lru_cache-декоратор, чтобы создать объект сервиса в едином экземпляре (синглтона)
 @lru_cache()
 def get_film_service(
-        redis: Redis = Depends(get_redis),
+        cache: MemoryCache = Depends(get_cache),
         elastic: AsyncElasticsearch = Depends(get_elastic),
 ) -> FilmService:
-    return FilmService(redis, elastic)
+    return FilmService(cache, elastic)
