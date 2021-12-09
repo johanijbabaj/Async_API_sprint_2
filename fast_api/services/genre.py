@@ -1,41 +1,15 @@
 import orjson
-from abc import ABC, abstractmethod
 from functools import lru_cache
 from typing import List, Optional
 from uuid import UUID
 
-from aioredis import Redis
 from db.elastic import get_elastic
-from db.redis import get_redis
+from db.cache import MemoryCache, get_cache
 from elasticsearch import AsyncElasticsearch
 from fastapi import Depends
 from models.genre import Genre, GenreBrief
 
 GENRE_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
-
-
-class MemoryCache(ABC):
-    @abstractmethod
-    def set(self, key, data, expire):
-        pass
-
-    @abstractmethod
-    def get(self, key):
-        pass
-
-
-class RedisCache(MemoryCache):
-    __con = None
-
-    def __init__(self, redis: Redis):
-        self.__con = redis
-
-    async def set(self, key, data, expire):
-        await self.__con.set(key, data, expire=expire)
-
-    async def get(self, key):
-        data = await self.__con.get(key)
-        return data
 
 
 class GenreService:
@@ -167,11 +141,6 @@ class GenreService:
     def _get_genre_key(self, *args):
         key = ("genres", args)
         return str(key)
-
-
-async def get_cache() -> MemoryCache:
-    redis_instance = await get_redis()
-    return RedisCache(redis_instance)
 
 
 @lru_cache()

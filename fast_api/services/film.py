@@ -5,7 +5,7 @@ from uuid import UUID
 
 from aioredis import Redis
 from db.elastic import get_elastic
-from db.redis import get_redis
+from db.cache import get_redis
 from elasticsearch import AsyncElasticsearch
 from fastapi import Depends
 from models.film import Film, FilmBrief
