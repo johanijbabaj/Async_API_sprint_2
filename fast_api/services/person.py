@@ -3,9 +3,8 @@ from functools import lru_cache
 from typing import List, Optional
 from uuid import UUID
 
-from aioredis import Redis
 from db.elastic import get_elastic
-from db.cache import get_redis
+from db.cache import MemoryCache, get_cache
 from elasticsearch import AsyncElasticsearch
 from fastapi import Depends
 from models.person import Person, PersonBrief
@@ -18,8 +17,8 @@ class PersonService:
         Сервис для получения информации о человеке по идентификатору
     """
 
-    def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
-        self.redis = redis
+    def __init__(self, cache: MemoryCache, elastic: AsyncElasticsearch):
+        self.cache = cache
         self.elastic = elastic
 
     async def get_by_id(self, person_id: str) -> Optional[Person]:
@@ -54,9 +53,9 @@ class PersonService:
 
     async def _person_from_cache(self, person_id: str) -> Optional[Person]:
         """
-            Чтение данных о человеке из кэша Redis
+            Чтение данных о человеке из кэша
         """
-        data = await self.redis.get(person_id)
+        data = await self.cache.get(person_id)
         if not data:
             return None
 
@@ -64,9 +63,9 @@ class PersonService:
 
     async def _put_person_to_cache(self, person: Person):
         """
-            Запись данных о человеке в кэш Redis
+            Запись данных о человеке в кэш
         """
-        await self.redis.set(str(person.uuid), person.json(), expire=PERSON_CACHE_EXPIRE_IN_SECONDS)
+        await self.cache.set(str(person.uuid), person.json(), PERSON_CACHE_EXPIRE_IN_SECONDS)
 
     async def get_by_film_id(self,
                              film_uuid: Optional[UUID],
@@ -137,7 +136,7 @@ class PersonService:
                                          page_number: Optional[int]) -> List[PersonBrief]:
 
         key = self._get_persons_key(film_uuid, filter_name, sort, page_size, page_number)
-        data = await self.redis.get(key)
+        data = await self.cache.get(key)
         if not data:
             return []
         films = [PersonBrief(**film) for film in orjson.loads(data)]
@@ -153,7 +152,7 @@ class PersonService:
                                   ):
         key = self._get_persons_key(film_uuid, filter_name, sort, page_size, page_number)
         json = "[{}]".format(','.join(film.json() for film in persons))
-        await self.redis.set(key, json, expire=PERSON_CACHE_EXPIRE_IN_SECONDS)
+        await self.cache.set(key, json, PERSON_CACHE_EXPIRE_IN_SECONDS)
 
     def _get_persons_key(self,
                          *args):
@@ -163,7 +162,7 @@ class PersonService:
 
 @lru_cache()
 def get_person_service(
-        redis: Redis = Depends(get_redis),
+        cache: MemoryCache = Depends(get_cache),
         elastic: AsyncElasticsearch = Depends(get_elastic),
 ) -> PersonService:
-    return PersonService(redis, elastic)
+    return PersonService(cache, elastic)
