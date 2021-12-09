@@ -25,7 +25,7 @@ class FilmService:
 
         film = await self._film_from_cache(film_id)
         if not film:
-            film = await self.storage.get_film()
+            film = await self.storage.get_film(film_id)
             if not film:
                 return None
             await self._put_film_to_cache(film)
