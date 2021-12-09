@@ -3,9 +3,8 @@ from functools import lru_cache
 from typing import List, Optional
 from uuid import UUID
 
-from aioredis import Redis
 from db.elastic import get_elastic
-from db.redis import get_redis
+from db.cache import MemoryCache, get_cache
 from elasticsearch import AsyncElasticsearch
 from fastapi import Depends
 from models.genre import Genre, GenreBrief
@@ -18,8 +17,8 @@ class GenreService:
         Сервис для получения жанра по идентификатору, или всех жанров фильма
     """
 
-    def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
-        self.redis = redis
+    def __init__(self, cache: MemoryCache, elastic: AsyncElasticsearch):
+        self.cache = cache
         self.elastic = elastic
 
     async def get_by_id(self, genre_id: str) -> Optional[Genre]:
@@ -32,7 +31,7 @@ class GenreService:
             if not genre:
                 # Если он отсутствует в Elasticsearch, значит, жанра вообще нет в базе
                 return None
-            # Сохраняем фильм  в кеш
+            # Сохраняем фильм в кеш
             await self._put_genre_to_cache(genre)
 
         return genre
@@ -49,21 +48,13 @@ class GenreService:
         return Genre(**genre_info)
 
     async def _genre_from_cache(self, genre_id: str) -> Optional[Genre]:
-        # Пытаемся получить данные о жанре из кеша, используя команду get
-        # https://redis.io/commands/get
-        data = await self.redis.get(genre_id)
+        data = await self.cache.get(genre_id)
         if not data:
             return None
-
-        # pydantic предоставляет удобное API для создания объекта моделей из json
         return Genre.parse_raw(data)
 
     async def _put_genre_to_cache(self, genre: Genre):
-        # Сохраняем данные о жанре, используя команду set
-        # Выставляем время жизни кеша — 5 минут
-        # https://redis.io/commands/set
-        # pydantic позволяет сериализовать модель в json
-        await self.redis.set(str(genre.uuid), genre.json(), expire=GENRE_CACHE_EXPIRE_IN_SECONDS)
+        await self.cache.set(str(genre.uuid), genre.json(), GENRE_CACHE_EXPIRE_IN_SECONDS)
 
     async def get_by_film_id(self,
                              film_uuid: Optional[UUID],
@@ -130,7 +121,7 @@ class GenreService:
                                      page_number: int
                                      ) -> List[GenreBrief]:
         key = self._get_genre_key(film_uuid, sort, page_size, page_number)
-        data = await self.redis.get(key)
+        data = await self.cache.get(key)
         if not data:
             return []
         genres = [GenreBrief(**genre) for genre in orjson.loads(data)]
@@ -145,17 +136,16 @@ class GenreService:
                                    ):
         key = self._get_genre_key(film_uuid, sort, page_size, page_number)
         json = "[{}]".format(','.join(genre.json() for genre in genres))
-        await self.redis.set(key, json, expire=GENRE_CACHE_EXPIRE_IN_SECONDS)
+        await self.cache.set(key, json, GENRE_CACHE_EXPIRE_IN_SECONDS)
 
     def _get_genre_key(self, *args):
         key = ("genres", args)
         return str(key)
 
 
-
 @lru_cache()
 def get_genre_service(
-        redis: Redis = Depends(get_redis),
+        cache: MemoryCache = Depends(get_cache),
         elastic: AsyncElasticsearch = Depends(get_elastic),
 ) -> GenreService:
-    return GenreService(redis, elastic)
+    return GenreService(cache, elastic)

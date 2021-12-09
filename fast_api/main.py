@@ -5,7 +5,7 @@ import uvicorn
 from api.v1 import film, genre, person
 from core import config
 from core.logger import LOGGING
-from db import elastic, redis
+from db import elastic, cache
 from elasticsearch import AsyncElasticsearch
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
@@ -28,7 +28,7 @@ async def startup():
     # Подключаемся к базам при старте сервера
     # Подключиться можем при работающем event-loop
     # Поэтому логика подключения происходит в асинхронной функции
-    redis.redis = await aioredis.create_redis_pool((config.REDIS_HOST, config.REDIS_PORT), minsize=10,
+    cache.redis = await aioredis.create_redis_pool((config.REDIS_HOST, config.REDIS_PORT), minsize=10,
                                                    maxsize=20, password=config.REDIS_AUTH)
     elastic.es = AsyncElasticsearch(hosts=[f'{config.ELASTIC_HOST}:{config.ELASTIC_PORT}'])
 
@@ -36,7 +36,7 @@ async def startup():
 @app.on_event('shutdown')
 async def shutdown():
     # Отключаемся от баз при выключении сервера
-    await redis.redis.close()
+    await cache.redis.close()
     await elastic.es.close()
 
 
