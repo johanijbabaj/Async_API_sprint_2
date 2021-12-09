@@ -60,8 +60,7 @@ class FilmService:
                               ) -> List[FilmBrief]:
         films = await self._get_films_from_cache(filter_genre, sort, page_size, page_number)
         if not films:
-            films = await self._get_film_from_storage(filter_genre=filter_genre, sort=sort,
-                                                 page_size=page_size, page_number= page_number)
+            films = await self._get_films_by_genre_from_storage(filter_genre, sort, page_size, page_number)
             if not films:
                 return []
             await self._put_films_to_cache(films, filter_genre, sort, page_size, page_number)
@@ -102,7 +101,7 @@ class FilmService:
             ]
         }
         es_fields = ["id", "title", "imdb_rating"]
-        doc = await self.storage.search(index='movies', body=search_query, _source_includes=es_fields)
+        doc = await self.storage.search('movies', search_query, es_fields)
         films_info = doc.get("hits").get("hits")
         film_list = [FilmBrief(**film.get("_source")) for film in films_info]
         return film_list

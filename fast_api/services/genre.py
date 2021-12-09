@@ -101,11 +101,7 @@ class GenreService:
             ]
         }
         es_fields = ["id", "name", "description"]
-        doc = await self.storage.search(
-            index='genres',
-            body=search_query,
-            _source_includes=es_fields
-        )
+        doc = await self.storage.search('genres', search_query, es_fields)
         genres_info = doc.get("hits").get("hits")
         genre_list = [
             GenreBrief(**genre.get("_source")) for genre in genres_info

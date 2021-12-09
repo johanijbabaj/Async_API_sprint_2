@@ -81,7 +81,7 @@ class PersonService:
         """
         persons = await self._get_by_film_id_from_cache(film_uuid, filter_name, sort, page_size, page_number)
         if not persons:
-            persons = await self._get_person_from_storage(film_uuid, filter_name, sort, page_size, page_number)
+            persons = await self._get_by_film_id_from_storage(film_uuid, filter_name, sort, page_size, page_number)
             if not persons:
                 return []
             await self._put_films_to_cache(persons, film_uuid, filter_name, sort, page_size, page_number)
@@ -119,11 +119,7 @@ class PersonService:
                 }
             }
         es_fields = ["id", "full_name", "birth_date"]
-        doc = await self.storage.search(
-            index='persons',
-            body=search_query,
-            _source_includes=es_fields
-        )
+        doc = await self.storage.search('persons', search_query, es_fields)
         persons_info = doc.get("hits").get("hits")
         person_list = [
             PersonBrief(**person.get("_source")) for person in persons_info
