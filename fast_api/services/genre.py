@@ -26,13 +26,23 @@ class GenreService:
 
         genre = await self._genre_from_cache(genre_id)
         if not genre:
-            genre = await self.storage.get_genre(genre_id)
+            genre = await self._get_genre_from_storage(genre_id)
             if not genre:
                 return None
             await self._put_genre_to_cache(genre)
 
         return genre
 
+    async def _get_genre_from_storage(self, genre_id: str) -> Optional[Genre]:
+
+        es_fields = ["id", "name", "description", "films"]
+        doc = await self.storage.get('genres', genre_id, _source_includes=es_fields)
+        genre_info = doc.get("_source")
+        # Спецификация API требует, чтобы поле идентификатора называлось UUID
+        genre_info["uuid"] = genre_info["id"]
+        genre_info.pop("id")
+
+        return Genre(**genre_info)
 
     async def _genre_from_cache(self, genre_id: str) -> Optional[Genre]:
         data = await self.redis.get(genre_id)
@@ -56,13 +66,51 @@ class GenreService:
         """
         genres = await self._get_genres_from_cache(film_uuid, sort, page_size, page_number)
         if not genres:
-            genres = await self.storage.get_genres(film_uuid, sort, page_size, page_number)
+            genres = await self._get_by_film_id_from_storage(film_uuid, sort, page_size, page_number)
             if not genres:
                 return []
             await self._put_genres_to_cache(genres, film_uuid, sort, page_size, page_number)
         return genres
 
-
+    async def _get_by_film_id_from_storage(self,
+                                           film_uuid: Optional[UUID],
+                                           sort: str,
+                                           page_size: int,
+                                           page_number: int
+                                           ) -> List[GenreBrief]:
+        """
+            Получить список жанров из ElasticSearch
+        """
+        search_query = {
+            "from": (page_number - 1) * page_size,
+            "size": page_size,
+            "query": {
+                "nested": {
+                    "path": "films",
+                    "query": {
+                        "bool": {
+                            "must": [
+                                {"match": {"films.id": str(film_uuid)}}
+                            ]
+                        }
+                    }
+                }
+            } if film_uuid else {"match_all": {}},
+            "sort": [
+                {sort or "name": {"order": "asc"}}
+            ]
+        }
+        es_fields = ["id", "name", "description"]
+        doc = await self.storage.search(
+            index='genres',
+            body=search_query,
+            _source_includes=es_fields
+        )
+        genres_info = doc.get("hits").get("hits")
+        genre_list = [
+            GenreBrief(**genre.get("_source")) for genre in genres_info
+        ]
+        return genre_list
 
     async def _get_genres_from_cache(self,
                                      film_uuid: Optional[UUID],
