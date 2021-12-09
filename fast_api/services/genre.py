@@ -1,4 +1,5 @@
 import orjson
+from abc import ABC, abstractmethod
 from functools import lru_cache
 from typing import List, Optional
 from uuid import UUID
@@ -13,13 +14,37 @@ from models.genre import Genre, GenreBrief
 GENRE_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
 
+class MemoryCache(ABC):
+    @abstractmethod
+    def to_cache(self, key, data, expire):
+        pass
+
+    @abstractmethod
+    def from_cache(self, key):
+        pass
+
+
+class RedisCache(MemoryCache):
+    con = None
+
+    def __init__(self, redis: Redis):
+        self.con = redis
+
+    async def to_cache(self, key, data, expire):
+        await self.con.set(key, data, expire=expire)
+
+    async def from_cache(self, key):
+        data = await self.con.get(key)
+        return data
+
+
 class GenreService:
     """
         Сервис для получения жанра по идентификатору, или всех жанров фильма
     """
 
-    def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
-        self.redis = redis
+    def __init__(self, cache: MemoryCache, elastic: AsyncElasticsearch):
+        self.cache = cache
         self.elastic = elastic
 
     async def get_by_id(self, genre_id: str) -> Optional[Genre]:
@@ -51,7 +76,7 @@ class GenreService:
     async def _genre_from_cache(self, genre_id: str) -> Optional[Genre]:
         # Пытаемся получить данные о жанре из кеша, используя команду get
         # https://redis.io/commands/get
-        data = await self.redis.get(genre_id)
+        data = await self.cache.from_cache(genre_id)
         if not data:
             return None
 
@@ -63,7 +88,7 @@ class GenreService:
         # Выставляем время жизни кеша — 5 минут
         # https://redis.io/commands/set
         # pydantic позволяет сериализовать модель в json
-        await self.redis.set(str(genre.uuid), genre.json(), expire=GENRE_CACHE_EXPIRE_IN_SECONDS)
+        await self.cache.to_cache(str(genre.uuid), genre.json(), expire=GENRE_CACHE_EXPIRE_IN_SECONDS)
 
     async def get_by_film_id(self,
                              film_uuid: Optional[UUID],
@@ -152,10 +177,14 @@ class GenreService:
         return str(key)
 
 
+async def get_cache() -> MemoryCache:
+    redis_instance = await get_redis()
+    return RedisCache(redis_instance)
+
 
 @lru_cache()
 def get_genre_service(
-        redis: Redis = Depends(get_redis),
+        cache: MemoryCache = Depends(get_cache),
         elastic: AsyncElasticsearch = Depends(get_elastic),
 ) -> GenreService:
-    return GenreService(redis, elastic)
+    return GenreService(cache, elastic)
