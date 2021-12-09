@@ -8,7 +8,7 @@ es: Optional[AsyncElasticsearch] = None
 class AbstractStorage(ABC):
 
     @abstractmethod
-    def get(self, *args: Any):
+    def get(self, *args: Any, **kwargs: Any):
         pass
 
     @abstractmethod
@@ -22,12 +22,12 @@ class ElasticStorage(AbstractStorage):
     def __init__(self, elastic: AsyncElasticsearch):
         self.__conn = elastic
 
-    async def get(self, *args: Any):
-        data = self.__conn.get(args)
+    async def get(self, *args: Any, **kwargs: Any):
+        data = self.__conn.get(*args, **kwargs)
         return data
 
-    async def search(self, *args: Any):
-        data = self.__conn.search(args)
+    async def search(self, **kwargs: Any):
+        data = self.__conn.search(**kwargs)
         return data
 
 # Функция понадобится при внедрении зависимостей
