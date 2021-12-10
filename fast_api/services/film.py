@@ -1,24 +1,23 @@
 import orjson
 
-from aioredis import Redis
-from db.storage import get_storage
-from db.redis import get_redis
-from db.storage import AbstractStorage
+from db.cache import MemoryCache, get_cache
+from db.storage import AbstractStorage, get_storage
 from fastapi import Depends
 from functools import lru_cache
 from models.film import Film, FilmBrief
-from typing import List, Optional, Any
+from typing import List, Optional
 from uuid import UUID
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
+
 
 class FilmService:
     """
         FilmService содержит бизнес-логику по работе с фильмами.
     """
 
-    def __init__(self, redis: Redis, storage: AbstractStorage):
-        self.redis = redis
+    def __init__(self, cache: MemoryCache, storage: AbstractStorage):
+        self.cache = cache
         self.storage = storage
 
     async def get_by_id(self, film_id: str) -> Optional[Film]:
@@ -28,6 +27,7 @@ class FilmService:
             film = await self._get_film_from_storage(film_id)
             if not film:
                 return None
+            # Сохраняем фильм в кеш
             await self._put_film_to_cache(film)
 
         return film
@@ -35,22 +35,22 @@ class FilmService:
     async def _get_film_from_storage(self, film_id: str) -> Optional[Film]:
 
         es_fields = ["id", "title", "imdb_rating", "description", "genres", "actors", "writers"]
-        doc = await self.storage.get('movies', film_id, _source_includes=es_fields)
+        doc = await self.storage.get('movies', film_id, es_fields)
         film_info = doc.get("_source")
         film_info["uuid"] = film_info["id"]
         film_info.pop("id")
         return Film(**film_info)
 
     async def _film_from_cache(self, film_id: str) -> Optional[Film]:
-        data = await self.redis.get(film_id)
+        data = await self.cache.get(film_id)
         if not data:
             return None
+        return Film.parse_raw(data)
 
-        film = Film.parse_raw(data)
         return film
 
     async def _put_film_to_cache(self, film: Film):
-        await self.redis.set(str(film.uuid), film.json(), expire=FILM_CACHE_EXPIRE_IN_SECONDS)
+        await self.cache.set(str(film.uuid), film.json(), expire=FILM_CACHE_EXPIRE_IN_SECONDS)
 
     async def get_by_genre_id(self,
                               filter_genre: Optional[UUID],
@@ -113,7 +113,7 @@ class FilmService:
                                     page_number: Optional[int]
                                     ) -> List[FilmBrief]:
         key = self._get_films_key(filter_genre, sort, page_size, page_number)
-        data = await self.redis.get(key)
+        data = await self.cache.get(key)
         if not data:
             return []
         films = [FilmBrief(**film) for film in orjson.loads(data)]
@@ -128,12 +128,15 @@ class FilmService:
                                   ):
         key = self._get_films_key(filter_genre, sort, page_size, page_number)
         json = "[{}]".format(','.join(film.json() for film in films))
-        await self.redis.set(key, json, expire=FILM_CACHE_EXPIRE_IN_SECONDS)
+        await self.cache.set(key, json, FILM_CACHE_EXPIRE_IN_SECONDS)
 
     def _get_films_key(self, *args):
         key = ("films", args)
         return str(key)
 
 @lru_cache()
-def get_film_service(redis: Redis = Depends(get_redis), storage: AbstractStorage = Depends(get_storage),) -> FilmService:
-    return FilmService(redis, storage)
+def get_film_service(
+        cache: MemoryCache = Depends(get_cache),
+        storage: AbstractStorage = Depends(get_storage),
+                    ) -> FilmService:
+    return FilmService(cache, storage)

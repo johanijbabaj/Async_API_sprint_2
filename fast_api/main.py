@@ -5,7 +5,7 @@ import uvicorn
 from api.v1 import film, genre, person
 from core import config
 from core.logger import LOGGING
-from db import storage, redis
+from db import storage, cache
 from elasticsearch import AsyncElasticsearch
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
@@ -20,14 +20,14 @@ app = FastAPI(
 
 @app.on_event('startup')
 async def startup():
-    redis.redis = await aioredis.create_redis_pool((config.REDIS_HOST, config.REDIS_PORT), minsize=10,
+    cache.redis = await aioredis.create_redis_pool((config.REDIS_HOST, config.REDIS_PORT), minsize=10,
                                                    maxsize=20, password=config.REDIS_AUTH)
     storage.es = AsyncElasticsearch(hosts=[f'{config.ELASTIC_HOST}:{config.ELASTIC_PORT}'])
 
 
 @app.on_event('shutdown')
 async def shutdown():
-    await redis.redis.close()
+    await cache.redis.close()
     await storage.es.close()
 
 app.include_router(film.router, prefix='/api/v1/film', tags=['film'])
