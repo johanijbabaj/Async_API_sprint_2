@@ -42,7 +42,7 @@ services:
     networks:
       - movies_network
     ports:
-      - 8000:8000
+      - "8000:8000"
     command: ["python", "main.py"]
     depends_on:
       - elastic
