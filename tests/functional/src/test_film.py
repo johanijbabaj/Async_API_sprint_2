@@ -44,7 +44,8 @@ def some_film(request):
 
 def test_some_film(some_film):
     """Проверяем, что тестовый фильм доступен по API"""
-    ans = requests.get("http://fast_api:8000/api/v1/film/bb74a838-584e-11ec-9885-c13c488d29c0")
+    settings = TestSettings()
+    ans = requests.get(f"{settings.api_host}/api/v1/film/bb74a838-584e-11ec-9885-c13c488d29c0")
     assert ans.status_code == 200
     data = ans.json()
     assert data["uuid"] == "bb74a838-584e-11ec-9885-c13c488d29c0"
