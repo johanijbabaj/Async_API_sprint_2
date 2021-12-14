@@ -1,13 +1,12 @@
 import orjson
+
+from db.cache import MemoryCache, get_cache
+from db.storage import AbstractStorage, get_storage
+from fastapi import Depends
 from functools import lru_cache
+from models.film import Film, FilmBrief
 from typing import List, Optional
 from uuid import UUID
-
-from db.elastic import get_elastic
-from db.cache import MemoryCache, get_cache
-from elasticsearch import AsyncElasticsearch
-from fastapi import Depends
-from models.film import Film, FilmBrief
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
@@ -17,29 +16,26 @@ class FilmService:
         FilmService содержит бизнес-логику по работе с фильмами.
     """
 
-    def __init__(self, cache: MemoryCache, elastic: AsyncElasticsearch):
+    def __init__(self, cache: MemoryCache, storage: AbstractStorage):
         self.cache = cache
-        self.elastic = elastic
+        self.storage = storage
 
     async def get_by_id(self, film_id: str) -> Optional[Film]:
 
-        # Пытаемся получить данные из кеша, потому что оно работает быстрее
         film = await self._film_from_cache(film_id)
         if not film:
-            # Если фильма нет в кеше, то ищем его в Elasticsearch
-            film = await self._get_film_from_elastic(film_id)
+            film = await self._get_film_from_storage(film_id)
             if not film:
-                # Если он отсутствует в Elasticsearch, значит, фильма вообще нет в базе
                 return None
             # Сохраняем фильм в кеш
             await self._put_film_to_cache(film)
 
         return film
 
-    async def _get_film_from_elastic(self, film_id: str) -> Optional[Film]:
+    async def _get_film_from_storage(self, film_id: str) -> Optional[Film]:
 
         es_fields = ["id", "title", "imdb_rating", "description", "genres", "actors", "writers"]
-        doc = await self.elastic.get('movies', film_id, _source_includes=es_fields)
+        doc = await self.storage.get('movies', film_id, es_fields)
         film_info = doc.get("_source")
         film_info["uuid"] = film_info["id"]
         film_info.pop("id")
@@ -50,6 +46,8 @@ class FilmService:
         if not data:
             return None
         return Film.parse_raw(data)
+
+        return film
 
     async def _put_film_to_cache(self, film: Film):
         await self.cache.set(str(film.uuid), film.json(), expire=FILM_CACHE_EXPIRE_IN_SECONDS)
@@ -62,13 +60,13 @@ class FilmService:
                               ) -> List[FilmBrief]:
         films = await self._get_films_from_cache(filter_genre, sort, page_size, page_number)
         if not films:
-            films = await self._get_films_by_genre_from_elastic(filter_genre, sort, page_size, page_number)
+            films = await self._get_films_by_genre_from_storage(filter_genre, sort, page_size, page_number)
             if not films:
                 return []
             await self._put_films_to_cache(films, filter_genre, sort, page_size, page_number)
         return films
 
-    async def _get_films_by_genre_from_elastic(self,
+    async def _get_films_by_genre_from_storage(self,
                                                filter_genre: Optional[UUID],
                                                sort: Optional[str],
                                                page_size: Optional[int],
@@ -103,7 +101,7 @@ class FilmService:
             ]
         }
         es_fields = ["id", "title", "imdb_rating"]
-        doc = await self.elastic.search(index='movies', body=search_query, _source_includes=es_fields)
+        doc = await self.storage.search('movies', search_query, es_fields)
         films_info = doc.get("hits").get("hits")
         film_list = [FilmBrief(**film.get("_source")) for film in films_info]
         return film_list
@@ -136,10 +134,9 @@ class FilmService:
         key = ("films", args)
         return str(key)
 
-
 @lru_cache()
 def get_film_service(
         cache: MemoryCache = Depends(get_cache),
-        elastic: AsyncElasticsearch = Depends(get_elastic),
-) -> FilmService:
-    return FilmService(cache, elastic)
+        storage: AbstractStorage = Depends(get_storage),
+                    ) -> FilmService:
+    return FilmService(cache, storage)

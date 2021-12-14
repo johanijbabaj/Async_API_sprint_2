@@ -1,11 +1,12 @@
 import orjson
+
+from aioredis import Redis
 from functools import lru_cache
 from typing import List, Optional
 from uuid import UUID
 
-from db.elastic import get_elastic
+from db.storage import AbstractStorage,get_storage
 from db.cache import MemoryCache, get_cache
-from elasticsearch import AsyncElasticsearch
 from fastapi import Depends
 from models.person import Person, PersonBrief
 
@@ -17,9 +18,9 @@ class PersonService:
         Сервис для получения информации о человеке по идентификатору
     """
 
-    def __init__(self, cache: MemoryCache, elastic: AsyncElasticsearch):
+    def __init__(self, cache: MemoryCache, storage: AbstractStorage):
         self.cache = cache
-        self.elastic = elastic
+        self.storage = storage
 
     async def get_by_id(self, person_id: str) -> Optional[Person]:
         """
@@ -28,7 +29,7 @@ class PersonService:
         person = await self._person_from_cache(person_id)
         if not person:
             # Если фильма нет в кеше, то ищем его в Elasticsearch
-            person = await self._get_person_from_elastic(person_id)
+            person = await self._get_person_from_storage(person_id)
             if not person:
                 # Если он отсутствует в Elasticsearch, значит, жанра вообще нет в базе
                 return None
@@ -37,13 +38,13 @@ class PersonService:
 
         return person
 
-    async def _get_person_from_elastic(self, person_id: str) -> Optional[Person]:
+    async def _get_person_from_storage(self, person_id: str) -> Optional[Person]:
         """
             Извлечь информацию о человеке из ElasticSearch по его строке
             идентификатору
         """
         es_fields = ["id", "full_name", "birth_date", "films"]
-        doc = await self.elastic.get('persons', person_id, _source_includes=es_fields)
+        doc = await self.storage.get('persons', person_id, es_fields)
         person_info = doc.get("_source")
         # Спецификация API требует, чтобы поле идентификатора называлось UUID
         person_info["uuid"] = person_info["id"]
@@ -79,13 +80,13 @@ class PersonService:
         """
         persons = await self._get_by_film_id_from_cache(film_uuid, filter_name, sort, page_size, page_number)
         if not persons:
-            persons = await self._get_by_film_id_from_elastic(film_uuid, filter_name, sort, page_size, page_number)
+            persons = await self._get_by_film_id_from_storage(film_uuid, filter_name, sort, page_size, page_number)
             if not persons:
                 return []
             await self._put_films_to_cache(persons, film_uuid, filter_name, sort, page_size, page_number)
         return persons
 
-    async def _get_by_film_id_from_elastic(self,
+    async def _get_by_film_id_from_storage(self,
                                            film_uuid: Optional[UUID],
                                            filter_name: Optional[str],
                                            sort: Optional[str],
@@ -117,11 +118,7 @@ class PersonService:
                 }
             }
         es_fields = ["id", "full_name", "birth_date"]
-        doc = await self.elastic.search(
-            index='persons',
-            body=search_query,
-            _source_includes=es_fields
-        )
+        doc = await self.storage.search('persons', search_query, es_fields)
         persons_info = doc.get("hits").get("hits")
         person_list = [
             PersonBrief(**person.get("_source")) for person in persons_info
@@ -163,6 +160,6 @@ class PersonService:
 @lru_cache()
 def get_person_service(
         cache: MemoryCache = Depends(get_cache),
-        elastic: AsyncElasticsearch = Depends(get_elastic),
+        storage: AbstractStorage = Depends(get_storage),
 ) -> PersonService:
-    return PersonService(cache, elastic)
+    return PersonService(cache, storage)

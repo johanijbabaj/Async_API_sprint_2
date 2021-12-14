@@ -3,9 +3,8 @@ from functools import lru_cache
 from typing import List, Optional
 from uuid import UUID
 
-from db.elastic import get_elastic
+from db.storage import AbstractStorage, get_storage
 from db.cache import MemoryCache, get_cache
-from elasticsearch import AsyncElasticsearch
 from fastapi import Depends
 from models.genre import Genre, GenreBrief
 
@@ -17,29 +16,26 @@ class GenreService:
         Сервис для получения жанра по идентификатору, или всех жанров фильма
     """
 
-    def __init__(self, cache: MemoryCache, elastic: AsyncElasticsearch):
+    def __init__(self, cache: MemoryCache, storage: AbstractStorage):
         self.cache = cache
-        self.elastic = elastic
+        self.storage = storage
 
     async def get_by_id(self, genre_id: str) -> Optional[Genre]:
 
-        # Пытаемся получить данные из кеша, потому что оно работает быстрее
         genre = await self._genre_from_cache(genre_id)
         if not genre:
-            # Если фильма нет в кеше, то ищем его в Elasticsearch
-            genre = await self._get_genre_from_elastic(genre_id)
+            genre = await self._get_genre_from_storage(genre_id)
             if not genre:
-                # Если он отсутствует в Elasticsearch, значит, жанра вообще нет в базе
                 return None
             # Сохраняем фильм в кеш
             await self._put_genre_to_cache(genre)
 
         return genre
 
-    async def _get_genre_from_elastic(self, genre_id: str) -> Optional[Genre]:
+    async def _get_genre_from_storage(self, genre_id: str) -> Optional[Genre]:
 
         es_fields = ["id", "name", "description", "films"]
-        doc = await self.elastic.get('genres', genre_id, _source_includes=es_fields)
+        doc = await self.storage.get('genres', genre_id, es_fields)
         genre_info = doc.get("_source")
         # Спецификация API требует, чтобы поле идентификатора называлось UUID
         genre_info["uuid"] = genre_info["id"]
@@ -68,13 +64,13 @@ class GenreService:
         """
         genres = await self._get_genres_from_cache(film_uuid, sort, page_size, page_number)
         if not genres:
-            genres = await self._get_by_film_id_from_elastic(film_uuid, sort, page_size, page_number)
+            genres = await self._get_by_film_id_from_storage(film_uuid, sort, page_size, page_number)
             if not genres:
                 return []
             await self._put_genres_to_cache(genres, film_uuid, sort, page_size, page_number)
         return genres
 
-    async def _get_by_film_id_from_elastic(self,
+    async def _get_by_film_id_from_storage(self,
                                            film_uuid: Optional[UUID],
                                            sort: str,
                                            page_size: int,
@@ -103,11 +99,7 @@ class GenreService:
             ]
         }
         es_fields = ["id", "name", "description"]
-        doc = await self.elastic.search(
-            index='genres',
-            body=search_query,
-            _source_includes=es_fields
-        )
+        doc = await self.storage.search('genres', search_query, es_fields)
         genres_info = doc.get("hits").get("hits")
         genre_list = [
             GenreBrief(**genre.get("_source")) for genre in genres_info
@@ -146,6 +138,6 @@ class GenreService:
 @lru_cache()
 def get_genre_service(
         cache: MemoryCache = Depends(get_cache),
-        elastic: AsyncElasticsearch = Depends(get_elastic),
+        storage: AbstractStorage = Depends(get_storage),
 ) -> GenreService:
-    return GenreService(cache, elastic)
+    return GenreService(cache, storage)
