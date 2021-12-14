@@ -36,6 +36,19 @@ def some_film(request):
             "writers": [],
             "actors_names": [],
             "writers_names": [],
+        },
+        {
+            "id": "bb74a838-584e-11ec-9885-c13c488d29c1",
+            "imdb_rating": 6.6,
+            "genre": "Action",
+            "title": "Another film",
+            "description": "Some film used for testing only",
+            "genres": [{"id": "46e70470-592f-11ec-8b39-d99d30aa920b", "name": "Action"}],
+            "director": "Joan Smith",
+            "actors": [],
+            "writers": [],
+            "actors_names": [],
+            "writers_names": [],
         }
     ]
 
