@@ -10,8 +10,9 @@ import pytest
 from elasticsearch import Elasticsearch, helpers
 
 # Строка с именем хоста и портом
-ELASTIC_HOST = os.getenv('ELASTIC_HOST')
-API_HOST = os.getenv('API_HOST')
+ELASTIC_HOST = os.getenv('ELASTIC_HOST', 'localhost:9200')
+API_HOST = os.getenv('API_HOST', 'localhost:8000')
+
 
 @pytest.fixture()
 def some_film(request):
