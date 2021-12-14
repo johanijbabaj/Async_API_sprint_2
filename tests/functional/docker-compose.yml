@@ -57,6 +57,8 @@ services:
       - fast_api
       - elastic
       - redis
+    env_file:
+        - tests.env
     networks:
       - movies_network
     command: ["bash", "-c", "PYTHONPATH=. python utils/wait_for_redis.py && PYTHONPATH=. python utils/wait_for_es.py && pytest -s src/"]
