@@ -4,9 +4,9 @@ from typing import List, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fast_api.core.config import ErrorMessage
-from fast_api.models.film import FilmApi, FilmBriefApi, FilmGenreApi, FilmPeopleApi
-from fast_api.services.film import FilmService, get_film_service
+from core.config import ErrorMessage
+from models.film import FilmApi, FilmBriefApi, FilmGenreApi, FilmPeopleApi
+from services.film import FilmService, get_film_service
 
 # Объект router, в котором регистрируем обработчики
 router = APIRouter()
