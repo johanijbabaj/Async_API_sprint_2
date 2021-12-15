@@ -34,7 +34,7 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - static_volume:/data:ro
     ports:
-#      - "8000:8000"
+      - "8000:8000"
       - "80:80"
     networks:
       - movies_network
@@ -43,9 +43,9 @@ services:
 
   elastic:
     #Порсьба выбрать нужный контейнер, но не удалять второй и третий
-    image: elasticsearch:7.7.0
+#    image: elasticsearch:7.7.0
 #    image: elasticsearch:7.14.0
-#    image: docker.elastic.co/elasticsearch/elasticsearch:7.15.1-arm64
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.15.1-arm64
     container_name: elastic_movies
     env_file:
       - es.env
