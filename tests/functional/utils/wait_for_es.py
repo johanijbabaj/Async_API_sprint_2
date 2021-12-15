@@ -6,20 +6,20 @@ os.getenv('ELASTIC_HOST', '127.0.0.1:9200)
 """
 
 import logging
+import os
 import requests
 
 from time import sleep
 from typing import Optional
 
-from settings import TestSettings
-
-es_host = TestSettings().es_host
+ELASTIC_HOST = os.getenv("ELASTIC_HOST")
 
 
-def wait_for_es(url: str = es_host, *, logger = None):
+def wait_for_es(url: str = None, *, logger = None):
     """
     Дождаться пока по адресу url заработает сервер ElasticSearch
     """
+    url = url or f"http://{ELASTIC_HOST}"
     while True:
         try:
             ans = requests.get(url)
