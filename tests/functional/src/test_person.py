@@ -91,7 +91,7 @@ async def test_some_person(some_person):
             assert data["full_name"] == "John Smith"
 
 
-@pytest.mark.skip(reason="no")
+# @pytest.mark.skip(reason="no")
 @pytest.mark.asyncio
 async def test_person_list(some_person):
     """Проверяем, что тестовый человек отображается в списке всех людей"""

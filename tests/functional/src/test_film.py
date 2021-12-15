@@ -101,7 +101,7 @@ async def test_some_film(some_film):
             assert data["imdb_rating"] == 5.5
 
 
-@pytest.mark.skip(reason="no")
+# @pytest.mark.skip(reason="no")
 @pytest.mark.asyncio
 async def test_film_list(some_film):
     """Проверяем, что тестовый фильм отображается в списке всех фильмов"""
