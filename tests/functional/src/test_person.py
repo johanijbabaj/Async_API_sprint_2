@@ -10,8 +10,8 @@ import pytest
 from elasticsearch import Elasticsearch, helpers
 
 # Строка с именем хоста и портом
-ELASTIC_HOST = os.getenv('ELASTIC_HOST')
-API_HOST = os.getenv('API_HOST')
+ELASTIC_HOST = os.getenv('ELASTIC_HOST', 'localhost:9200')
+API_HOST = os.getenv('API_HOST', 'localhost:8000')
 
 
 @pytest.fixture()
@@ -91,6 +91,7 @@ async def test_some_person(some_person):
             assert data["full_name"] == "John Smith"
 
 
+# @pytest.mark.skip(reason="no")
 @pytest.mark.asyncio
 async def test_person_list(some_person):
     """Проверяем, что тестовый человек отображается в списке всех людей"""

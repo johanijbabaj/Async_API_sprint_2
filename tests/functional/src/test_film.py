@@ -10,8 +10,9 @@ import pytest
 from elasticsearch import Elasticsearch, helpers
 
 # Строка с именем хоста и портом
-ELASTIC_HOST = os.getenv('ELASTIC_HOST')
-API_HOST = os.getenv('API_HOST')
+ELASTIC_HOST = os.getenv('ELASTIC_HOST', 'localhost:9200')
+API_HOST = os.getenv('API_HOST', 'localhost:8000')
+
 
 @pytest.fixture()
 def some_film(request):
@@ -100,6 +101,7 @@ async def test_some_film(some_film):
             assert data["imdb_rating"] == 5.5
 
 
+# @pytest.mark.skip(reason="no")
 @pytest.mark.asyncio
 async def test_film_list(some_film):
     """Проверяем, что тестовый фильм отображается в списке всех фильмов"""
