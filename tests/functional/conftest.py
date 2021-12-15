@@ -127,7 +127,6 @@ def some_film(request):
 
     request.addfinalizer(teardown)
 
-
 @pytest.fixture()
 def empty_index(request):
     """
