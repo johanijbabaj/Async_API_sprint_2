@@ -2,7 +2,8 @@ import os
 import aiohttp
 import pytest
 
-from conftest import some_genre, empty_genre_index
+# FIXME Я так понимаю импорт фикстур из conftest происходит автотически без явного вызова. Можно удалить.
+#from conftest import some_genre, empty_genre_index
 
 # Строка с именем хоста и портом
 API_HOST = os.getenv('API_HOST', 'localhost:8000')
