@@ -6,12 +6,12 @@ version: "3.7"
 services:
   elastic:
     # Просьба выбрать нужный контейнер, но не удалять второй и третий
-    image: elasticsearch:7.7.0
-#    image: elasticsearch:7.14.0
-#    image: docker.elastic.co/elasticsearch/elasticsearch:7.15.1-arm64
+    # image: elasticsearch:7.7.0
+    image: elasticsearch:7.14.0
+    # image: docker.elastic.co/elasticsearch/elasticsearch:7.15.1-arm64
     container_name: elastic_movies_test
-    env_file:
-      - ../../es.env
+    environment:
+      - discovery.type=single-node
     ports:
       - "9200:9200"
     networks:
@@ -54,13 +54,11 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file:
-      - ../../tst.env
+        - tests.env
     depends_on:
       - fast_api
       - elastic
       - redis
-    env_file:
-        - tests.env
     networks:
       - movies_network
     command: ["bash", "-c", "PYTHONPATH=. python utils/wait_for_redis.py && PYTHONPATH=. python utils/wait_for_es.py && pytest -s src/"]

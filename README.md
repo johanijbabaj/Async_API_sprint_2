@@ -1,5 +1,5 @@
 # Ссылка на репозиторий
-https://github.com/johanijbabaj/Async_API_sprint_1/
+https://github.com/johanijbabaj/Async_API_sprint_2/
 
 # Настройка
 
