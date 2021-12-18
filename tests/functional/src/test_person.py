@@ -8,6 +8,7 @@ import os
 import aiohttp
 import pytest
 from elasticsearch import Elasticsearch, helpers
+from http import HTTPStatus
 
 # Строка с именем хоста и портом
 ELASTIC_HOST = os.getenv('ELASTIC_HOST', 'localhost:9200')
@@ -85,7 +86,7 @@ async def test_some_person(some_person):
     """Проверяем, что тестовый человек доступен по API"""
     async with aiohttp.ClientSession() as session:
         async with session.get(f"http://{API_HOST}/api/v1/person/23d3d644-5abe-11ec-b50c-5378d698a87b") as ans:
-            assert ans.status == 200
+            assert ans.status == HTTPStatus.OK
             data = await ans.json()
             assert data["uuid"] == "23d3d644-5abe-11ec-b50c-5378d698a87b"
             assert data["full_name"] == "John Smith"
@@ -97,7 +98,7 @@ async def test_person_list(some_person):
     """Проверяем, что тестовый человек отображается в списке всех людей"""
     async with aiohttp.ClientSession() as session:
         async with session.get(f"http://{API_HOST}/api/v1/person") as ans:
-            assert ans.status == 200
+            assert ans.status == HTTPStatus.OK
             data = await ans.json()
             assert isinstance(data, list)
             assert len(data) == 1
@@ -110,7 +111,7 @@ async def test_empty_index(empty_index):
     """Тест запускается с пустым индексом и API должен вернуть ошибку 404"""
     async with aiohttp.ClientSession() as session:
         async with session.get(f"http://{API_HOST}/api/v1/person") as ans:
-            assert ans.status == 404
+            assert ans.status == HTTPStatus.NOT_FOUND
 
 
 @pytest.mark.asyncio
@@ -118,4 +119,4 @@ async def test_no_index():
     """Тест запускается без индекса и API должен вернуть ошибку 500"""
     async with aiohttp.ClientSession() as session:
         async with session.get(f"http://{API_HOST}/api/v1/person") as ans:
-            assert ans.status == 500
+            assert ans.status == HTTPStatus.INTERNAL_SERVER_ERROR
