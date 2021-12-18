@@ -6,13 +6,10 @@ os.getenv('REDIS_HOST', '127.0.0.1:6379)
 """
 
 import logging
-import requests
-
 from time import sleep
-from typing import Optional
 
+import requests
 from redis import Redis
-
 from settings import TestSettings
 
 redis_host = TestSettings().redis_host
@@ -20,7 +17,7 @@ redis_port = TestSettings().redis_port
 redis_password = TestSettings().redis_password
 
 
-def wait_for_redis(*, logger = None):
+def wait_for_redis(*, logger=None):
     """
     Дождаться пока заработает сервер redis
     """

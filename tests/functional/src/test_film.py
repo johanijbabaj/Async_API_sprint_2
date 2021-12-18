@@ -2,17 +2,14 @@
 Тесты для доступа к одиночному фильму по API
 """
 
-import json
 import os
 
 import aiohttp
 import pytest
-from elasticsearch import Elasticsearch, helpers
 
 # Строка с именем хоста и портом
 ELASTIC_HOST = os.getenv('ELASTIC_HOST', 'localhost:9200')
 API_HOST = os.getenv('API_HOST', 'localhost:8000')
-
 
 
 @pytest.mark.asyncio
@@ -50,7 +47,7 @@ async def test_film_list(some_film):
 
 
 @pytest.mark.asyncio
-async def test_empty(empty_index):
+async def test_empty(empty_film_index):
     """Тест запускается без фикстур и API должен вернуть ошибку 404"""
     async with aiohttp.ClientSession() as session:
         async with session.get(f"http://{API_HOST}/api/v1/film") as ans:
