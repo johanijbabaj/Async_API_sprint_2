@@ -59,10 +59,10 @@ def empty_genre_index(request):
     elastic_search = Elasticsearch(f"http://{ELASTIC_HOST}")
     # FIXME: Индекс может уже существовать из-за хвостов прошлых ошибок
     #        В рабочем варианте этого быть не должно, убрать потом
-    try:
-        elastic_search.indices.delete("genres")
-    except:
-        pass
+    # try:
+    #    elastic_search.indices.delete("genres")
+    # except:
+    #    pass
     elastic_search.indices.create("genres", scheme)
 
     def teardown():

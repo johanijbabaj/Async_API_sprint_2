@@ -21,8 +21,8 @@ def some_person(request):
     Заполнить индекс ElasticSearch тестовыми записями персон
     """
     # Создаем схему индекса для поиска персон
-    with open("testdata/schemes.json") as fd:
-        schemes = json.load(fd)
+    with open("testdata/schemes.json") as file_data:
+        schemes = json.load(file_data)
     scheme = schemes["person_scheme"]
     docs = [
         {
@@ -39,15 +39,17 @@ def some_person(request):
         }
     ]
     # Создаем поисковый индекс и заполняем документами
-    es = Elasticsearch(f"http://{ELASTIC_HOST}")
-    es.indices.create("persons", scheme)
-    helpers.bulk(es, [{"_index": "persons", "_id": doc["id"], **doc} for doc in docs])
+    elastic_search = Elasticsearch(f"http://{ELASTIC_HOST}")
+    elastic_search.indices.create("persons", scheme)
+    helpers.bulk(
+        elastic_search, [{"_index": "persons", "_id": doc["id"], **doc} for doc in docs]
+    )
 
     def teardown():
         """Удалить созданные для тестирования временные объекты"""
         for doc in docs:
-            es.delete("persons", doc["id"])
-        es.indices.delete("persons")
+            elastic_search.delete("persons", doc["id"])
+        elastic_search.indices.delete("persons")
 
     request.addfinalizer(teardown)
 
@@ -58,27 +60,27 @@ def empty_index(request):
     Заполнить индекс ElasticSearch без тестовых записей
     """
     # Создаем схему индекса для поиска персон
-    with open("testdata/schemes.json") as fd:
-        schemes = json.load(fd)
+    with open("testdata/schemes.json") as file_data:
+        schemes = json.load(file_data)
     scheme = schemes["person_scheme"]
-    es = Elasticsearch(f"http://{ELASTIC_HOST}")
+    elastic_search = Elasticsearch(f"http://{ELASTIC_HOST}")
     # FIXME: Индекс может уже существовать из-за хвостов прошлых ошибок
     #        В рабочем варианте этого быть не должно, убрать потом
-    try:
-        es.indices.delete("persons")
-    except:
-        pass
-    es.indices.create("persons", scheme)
+    # try:
+    #    elastic_search.indices.delete("persons")
+    # except:
+    #    pass
+    elastic_search.indices.create("persons", scheme)
 
     def teardown():
         """Удалить созданные для тестирования временные объекты"""
-        es.indices.delete("persons")
+        elastic_search.indices.delete("persons")
 
     request.addfinalizer(teardown)
 
 
 @pytest.mark.asyncio
-async def test_some_person(some_person):
+async def test_some_person(some_person):  # pylint: disable=unused-argument
     """Проверяем, что тестовый человек доступен по API"""
     async with aiohttp.ClientSession() as session:
         async with session.get(
@@ -92,7 +94,7 @@ async def test_some_person(some_person):
 
 # @pytest.mark.skip(reason="no")
 @pytest.mark.asyncio
-async def test_person_list(some_person):
+async def test_person_list(some_person):  # pylint: disable=unused-argument
     """Проверяем, что тестовый человек отображается в списке всех людей"""
     async with aiohttp.ClientSession() as session:
         async with session.get(f"http://{API_HOST}/api/v1/person") as ans:
@@ -105,7 +107,7 @@ async def test_person_list(some_person):
 
 
 @pytest.mark.asyncio
-async def test_empty_index(empty_index):
+async def test_empty_index(empty_index):  # pylint: disable=unused-argument
     """Тест запускается с пустым индексом и API должен вернуть ошибку 404"""
     async with aiohttp.ClientSession() as session:
         async with session.get(f"http://{API_HOST}/api/v1/person") as ans:
