@@ -1,7 +1,6 @@
 import os
 import aiohttp
 import pytest
-
 from http import HTTPStatus
 
 # Строка с именем хоста и портом

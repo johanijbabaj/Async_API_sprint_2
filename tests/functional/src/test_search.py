@@ -23,7 +23,6 @@ async def test_search_film(some_film):
             assert data[0]["imdb_rating"] == 5.5
 
 
-
 @pytest.mark.asyncio
 async def test_search_empty(empty_film_index):
     """Тест запускается без фикстур и API должен вернуть ошибку 404"""

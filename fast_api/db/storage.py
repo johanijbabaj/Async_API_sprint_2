@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from fastapi import Depends
 from typing import Optional
 from elasticsearch import AsyncElasticsearch
+from typing import Any, Optional
 
 es: Optional[AsyncElasticsearch] = None
 
