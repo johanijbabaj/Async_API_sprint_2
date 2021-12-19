@@ -1,8 +1,13 @@
 from abc import ABC, abstractmethod
+from fastapi import Depends
 from typing import Optional
 from elasticsearch import AsyncElasticsearch
 
 es: Optional[AsyncElasticsearch] = None
+
+
+async def get_elastic() -> AsyncElasticsearch:
+    return es
 
 
 class AbstractStorage(ABC):
@@ -25,7 +30,7 @@ class AbstractStorage(ABC):
 class ElasticStorage(AbstractStorage):
     __conn: AsyncElasticsearch
 
-    def __init__(self, elastic: AsyncElasticsearch):
+    def __init__(self, elastic: Depends(get_elastic)):
         self.__conn = elastic
 
     async def get(self, some_index, some_id, _source_includes):
@@ -65,11 +70,6 @@ class ElasticStorage(AbstractStorage):
             "query": sub_query}), **sorting)
         main_query = str(main_query).replace("'", '"')
         return main_query
-
-
-# Функция понадобится при внедрении зависимостей
-async def get_elastic() -> AsyncElasticsearch:
-    return es
 
 
 async def get_storage() -> AbstractStorage:
