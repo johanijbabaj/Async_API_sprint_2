@@ -12,8 +12,6 @@ services:
     container_name: elastic_movies_test
     environment:
       - discovery.type=single-node
-    ports:
-      - "9200:9200"
     networks:
       - movies_network
 
@@ -24,8 +22,6 @@ services:
     container_name: redis_movies_test
     volumes:
       - ../../redis/conf/etc:/usr/local/etc/redis
-    ports:
-      - "6379:6379"
     networks:
       - movies_network
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
@@ -41,8 +37,6 @@ services:
       - ../../fast_api:/fast_api:ro
     networks:
       - movies_network
-    ports:
-      - "8000:8000"
     command: ["python", "main.py"]
     depends_on:
       - elastic
