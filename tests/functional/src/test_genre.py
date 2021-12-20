@@ -1,21 +1,21 @@
+"""Содержит тесты лдля жанров"""
 import os
 from http import HTTPStatus
 
 import aiohttp
 import pytest
 
-# FIXME Я так понимаю импорт фикстур из conftest происходит автотически без явного вызова. Можно удалить.
-# from conftest import some_genre, empty_genre_index
-
 # Строка с именем хоста и портом
-API_HOST = os.getenv('API_HOST', 'localhost:8000')
+API_HOST = os.getenv("API_HOST", "localhost:8000")
 
 
 @pytest.mark.asyncio
-async def test_some_genre(some_genre):
+async def test_some_genre(some_genre):  # pylint: disable=unused-argument
     """Проверяем, что тестовый элемент доступен по API"""
     async with aiohttp.ClientSession() as session:
-        async with session.get(f"http://{API_HOST}/api/v1/genre/0b105f87-e0a5-45dc-8ce7-f8632088f390") as ans:
+        async with session.get(
+            f"http://{API_HOST}/api/v1/genre/0b105f87-e0a5-45dc-8ce7-f8632088f390"
+        ) as ans:
             assert ans.status == HTTPStatus.OK
             data = await ans.json()
             assert data["uuid"] == "0b105f87-e0a5-45dc-8ce7-f8632088f390"
@@ -24,7 +24,7 @@ async def test_some_genre(some_genre):
 
 
 @pytest.mark.asyncio
-async def test_empty_index(empty_genre_index):
+async def test_empty_index(empty_genre_index):  # pylint: disable=unused-argument
     """Тест запускается с пустым индексом и API должен вернуть ошибку 404"""
     async with aiohttp.ClientSession() as session:
         async with session.get(f"http://{API_HOST}/api/v1/genre") as ans:
