@@ -3,10 +3,10 @@
 """
 
 import os
+from http import HTTPStatus
+
 import aiohttp
 import pytest
-from http import HTTPStatus
-from elasticsearch import Elasticsearch, helpers
 
 # Строка с именем хоста и портом
 ELASTIC_HOST = os.getenv('ELASTIC_HOST', 'localhost:9200')
@@ -38,7 +38,7 @@ async def test_film_list(some_film):
             assert data["imdb_rating"] == 5.5
     async with aiohttp.ClientSession() as session:
         async with session.get(f"http://{API_HOST}/api/v1/film") as ans:
-            assert ans.status == HTTPStatus.OK
+            assert ans.status == 200
             data = await ans.json()
             assert isinstance(data, list)
             assert isinstance(data, list) == 1

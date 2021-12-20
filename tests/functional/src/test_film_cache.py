@@ -3,6 +3,7 @@
 """
 
 import os
+from http import HTTPStatus
 
 import aiohttp
 import aioredis
@@ -18,7 +19,7 @@ async def test_some_film_cache(some_film):
     """Проверяем, что тестовый фильм кэшируется после запроса по API"""
     async with aiohttp.ClientSession() as session:
         async with session.get(f"http://{API_HOST}/api/v1/film/bb74a838-584e-11ec-9885-c13c488d29c0") as ans:
-            assert ans.status == 200
+            assert ans.status == HTTPStatus.OK
             data = await ans.json()
             assert data["uuid"] == "bb74a838-584e-11ec-9885-c13c488d29c0"
             assert data["title"] == "Some film"
