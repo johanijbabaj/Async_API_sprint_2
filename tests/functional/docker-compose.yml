@@ -14,6 +14,8 @@ services:
       - discovery.type=single-node
     networks:
       - movies_network
+    # ports:
+    # - "9200:9200"
 
   redis:
     build:
@@ -25,6 +27,8 @@ services:
     networks:
       - movies_network
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    # ports:
+    # - "6379:6379"
 
   fast_api:
     build:
@@ -41,14 +45,14 @@ services:
     depends_on:
       - elastic
       - redis
+    # ports:
+    # - "8000:8000"
 
   tests:
     container_name: movies_test
     build:
       context: .
       dockerfile: Dockerfile
-    env_file:
-      - ../../tst.env
     depends_on:
       - fast_api
       - elastic

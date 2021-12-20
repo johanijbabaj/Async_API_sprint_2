@@ -38,7 +38,7 @@ async def test_film_list(some_film):
             assert data["imdb_rating"] == 5.5
     async with aiohttp.ClientSession() as session:
         async with session.get(f"http://{API_HOST}/api/v1/film") as ans:
-            assert ans.status == 200
+            assert ans.status == HTTPStatus.OK
             data = await ans.json()
             assert isinstance(data, list)
             assert isinstance(data, list) == 1
