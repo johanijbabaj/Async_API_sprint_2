@@ -3,10 +3,10 @@
 """
 
 import os
+from http import HTTPStatus
+
 import aiohttp
 import pytest
-from http import HTTPStatus
-from elasticsearch import Elasticsearch, helpers
 
 # Строка с именем хоста и портом
 ELASTIC_HOST = os.getenv('ELASTIC_HOST', 'localhost:9200')
