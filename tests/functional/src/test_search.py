@@ -3,10 +3,11 @@
 """
 
 import os
+from http import HTTPStatus
 
 import aiohttp
 import pytest
-from http import HTTPStatus
+
 # Строка с именем хоста и портом
 API_HOST = os.getenv('API_HOST', 'localhost:8000')
 
