@@ -15,20 +15,9 @@ def some_genre(request):
     with open("testdata/schemes.json") as schemes_json:
         schemes = json.load(schemes_json)
     scheme = schemes["genre_scheme"]
-    docs = [
-        {
-            "id": "0b105f87-e0a5-45dc-8ce7-f8632088f390",
-            "name": "Western",
-            "description": "Some description",
-            "films": [
-                {
-                    "id": "02c24a84-1667-4f98-b459-f08933befa3d",
-                    "title": "Star in the Dust",
-                },
-                {"id": "259935b8-d79d-4050-93a7-b3713cfb640c", "title": "North Star"},
-            ],
-        }
-    ]
+    # Создаем тестовый список жанров
+    with open("testdata/some_genre.json") as docs_json:
+        docs = json.load(docs_json)
 
     elastic_search = Elasticsearch(f"http://{ELASTIC_HOST}")
     try:
@@ -81,39 +70,8 @@ def some_film(request):
     with open("testdata/schemes.json") as schemes_json:
         schemes = json.load(schemes_json)
     scheme = schemes["film_scheme"]
-    docs = [
-        {
-            "id": "bb74a838-584e-11ec-9885-c13c488d29c0",
-            "imdb_rating": 5.5,
-            "genre": "Action",
-            "title": "Some film",
-            "description": "Some film used for testing only",
-            "genres": [
-                {"id": "46e70470-592f-11ec-8b39-d99d30aa920b", "name": "Action"}
-            ],
-            "director": "John Smith",
-            "actors": [],
-            "writers": [],
-            "actors_names": [],
-            "writers_names": [],
-        },
-        {
-            "id": "7ab42811-0872-4305-b140-36546ee6e0b3",
-            "imdb_rating": 9.5,
-            "genre": "Comedy",
-            "title": "Funny film",
-            "description": "Funny film used for testing only",
-            "genres": [
-                {"id": "cec222f5-8550-41e0-80d2-5fb3abe9b5c6", "name": "Comedy"}
-            ],
-            "director": "Adam Smith",
-            "actors": [],
-            "writers": [],
-            "actors_names": [],
-            "writers_names": [],
-        },
-    ]
-
+    with open("testdata/some_film.json") as docs_json:
+        docs = json.load(docs_json)
     elastic_search = Elasticsearch(f"http://{ELASTIC_HOST}")
     try:
         elastic_search.indices.delete("movies")
@@ -165,14 +123,8 @@ def some_person(request):
     with open("testdata/schemes.json") as fd:
         schemes = json.load(fd)
     scheme = schemes['person_scheme']
-    docs = [
-        {
-            "id": "23d3d644-5abe-11ec-b50c-5378d698a87b",
-            "full_name": "John Smith",
-            "birth_date": "01.01.2001",
-            "films": [{"id": "6fbe525a-5abe-11ec-b50c-5378d698a87b", "title": "John's film", "role": "actor"}],
-        }
-    ]
+    with open("testdata/some_person.json") as docs_json:
+        docs = json.load(docs_json)
     # Создаем поисковый индекс и заполняем документами
     es = Elasticsearch(f"http://{ELASTIC_HOST}")
     es.indices.create('persons', scheme)
