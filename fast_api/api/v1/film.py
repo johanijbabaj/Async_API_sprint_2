@@ -61,6 +61,7 @@ async def film_details(
     """
     Пример обращений, которые должны обрабатываться API
     #GET /api/v1/film/bf3bd131-b844-4585-9974-6c374cff2371
+    #GET /api/v1/film/ff00b2a9-9e85-44af-922f-5f3504b82c15
     """
     film = await film_service.get_by_id(film_id)
     if not film:
