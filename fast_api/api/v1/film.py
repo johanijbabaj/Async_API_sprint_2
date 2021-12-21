@@ -3,8 +3,8 @@ from http import HTTPStatus
 from typing import List, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
 from core.config import ErrorMessage
+from fastapi import APIRouter, Depends, HTTPException, Query
 from models.film import FilmApi, FilmBriefApi, FilmGenreApi, FilmPeopleApi
 from services.film import FilmService, get_film_service
 
@@ -33,14 +33,15 @@ router = APIRouter()
 #     film = await film_service.get_by_id(film_id)
 
 @router.get('/search')
-async def film_search(query: str = Query(None, alias="query_string"),
-                      page_size: int = Query(None, alias="page[size]"),
-                      page_number: int = Query(None, alias="page[number]"),
-                      film_service: FilmService = Depends(get_film_service)
-                      ) -> List[FilmBriefApi]:
+async def film_search(
+        query: str = Query(None, alias="query_string"),
+        page_size: int = Query(None, alias="page[size]"),
+        page_number: int = Query(None, alias="page[number]"),
+        film_service: FilmService = Depends(get_film_service)
+) -> List[FilmBriefApi]:
     """
-        Примеры обращений, которые должны обрабатываться API
-        #GET /api/v1/film/search?query=star&page[size]=50&page[number]=1
+    Примеры обращений, которые должны обрабатываться API
+    #GET /api/v1/film/search?query=star&page[size]=50&page[number]=1
     """
     logging.debug(f"Получили параметры {query=}-{type(query)},"
                   f" {page_size=}-{type(page_size)}, {page_number=}-{type(page_number)}")
@@ -49,19 +50,18 @@ async def film_search(query: str = Query(None, alias="query_string"),
         # Если выборка пустая, отдаём 404 статус
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=ErrorMessage.FILM_NOT_FOUND)
     # Перекладываем данные из models.Film в Film
-    films_api = [FilmBriefApi(uuid=film.id, title=film.title, imdb_rating=film.imdb_rating)
-                 for film in films]
-    return films_api
+    return [FilmBriefApi(uuid=film.id, title=film.title, imdb_rating=film.imdb_rating) for film in films]
 
 
 @router.get('/{film_id}', response_model=FilmApi)
-async def film_details(film_id: str,
-                       film_service: FilmService = Depends(get_film_service)) -> FilmApi:
+async def film_details(
+        film_id: str,
+        film_service: FilmService = Depends(get_film_service)
+) -> FilmApi:
     """
-        Пример обращений, которые должны обрабатываться API
-        #GET /api/v1/film/bf3bd131-b844-4585-9974-6c374cff2371
+    Пример обращений, которые должны обрабатываться API
+    #GET /api/v1/film/bf3bd131-b844-4585-9974-6c374cff2371
     """
-
     film = await film_service.get_by_id(film_id)
     if not film:
         # Если фильм не найден, отдаём 404 статус
@@ -76,19 +76,20 @@ async def film_details(film_id: str,
     # вы бы предоставляли клиентам данные, которые им не нужны
     # и, возможно, данные, которые опасно возвращать
 
-    genre_list = [FilmGenreApi(uuid=genres.get("id"), name=genres.get("name"))
-                  for genres in film.genres or []]
-    actors_list = [FilmPeopleApi(uuid=actor.get("id"),
-                                 name=actor.get("name"))
-                   for actor in film.actors or []]
-    writers_list = [FilmPeopleApi(uuid=writer.get("id"),
-                                  name=writer.get("name"))
-                    for writer in film.writers or []]
+    genre_list = [FilmGenreApi(uuid=genre.get("id"), name=genre.get("name")) for genre in film.genres or []]
+    actors_list = [FilmPeopleApi(uuid=actor.get("id"), name=actor.get("name")) for actor in film.actors or []]
+    writers_list = [FilmPeopleApi(uuid=writer.get("id"), name=writer.get("name")) for writer in film.writers or []]
 
-    return FilmApi(uuid=film.uuid, title=film.title,
-                   imdb_rating=film.imdb_rating, description=film.description,
-                   genre=genre_list, actors=actors_list,
-                   writers=writers_list, director=film.director)
+    return FilmApi(
+        uuid=film.uuid,
+        title=film.title,
+        imdb_rating=film.imdb_rating,
+        description=film.description,
+        genre=genre_list,
+        actors=actors_list,
+        writers=writers_list,
+        director=film.director
+    )
 
 
 @router.get('/')

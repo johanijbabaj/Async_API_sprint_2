@@ -16,6 +16,10 @@ async def genre_details(
         genre_id: str,
         genre_service: GenreService = Depends(get_genre_service)
 ) -> Genre_API:
+    """
+    Пример обращений, которые должны обрабатываться API
+    #GET /api/v1/genre/fb58fd7f-7afd-447f-b833-e51e45e2a778
+    """
     genre = await genre_service.get_by_id(genre_id)
     if not genre:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=ErrorMessage.GENRE_NOT_FOUND)
@@ -36,9 +40,9 @@ async def genre_list(
         genre_service: GenreService = Depends(get_genre_service)
 ) -> List[GenreBrief_API]:
     """
-        Примеры обращений, которые должны обрабатываться API
-        #GET /api/v1/genre?sort=name&page[size]=50&page[number]=1
-        #GET /api/v1/genre?filter[film]=<uuid:UUID>&sort=name&page[size]=50&page[number]=1
+    Примеры обращений, которые должны обрабатываться API
+    #GET /api/v1/genre?sort=name&page[size]=50&page[number]=1
+    #GET /api/v1/genre?filter[film]=<uuid:UUID>&sort=name&page[size]=50&page[number]=1
     """
     logging.debug(f"Получили параметры {sort=}-{type(sort)}, {filter_film=}-{type(filter_film)},"
                   f" {page_size=}-{type(page_size)}, {page_number=}-{type(page_number)}")
