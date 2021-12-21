@@ -33,7 +33,7 @@ def some_genre(request):
     elastic_search = Elasticsearch(f"http://{ELASTIC_HOST}")
     try:
         elastic_search.indices.delete("genres")
-    except:
+    except Exception:
         pass
     elastic_search.indices.create("genres", scheme)
     helpers.bulk(
@@ -59,11 +59,11 @@ def empty_genre_index(request):
     elastic_search = Elasticsearch(f"http://{ELASTIC_HOST}")
     # FIXME: Индекс может уже существовать из-за хвостов прошлых ошибок
     #        В рабочем варианте этого быть не должно, убрать потом
-    # try:
-    #    elastic_search.indices.delete("genres")
-    # except:
-    #    pass
-    elastic_search.indices.create("genres", scheme)
+    try:
+        elastic_search.indices.delete('genres')
+    except Exception:
+        pass
+    elastic_search.indices.create('genres', scheme)
 
     def teardown():
         """Удалить созданные для тестирования временные объекты"""
@@ -117,7 +117,7 @@ def some_film(request):
     elastic_search = Elasticsearch(f"http://{ELASTIC_HOST}")
     try:
         elastic_search.indices.delete("movies")
-    except:
+    except Exception:
         pass
     elastic_search.indices.create("movies", scheme)
     helpers.bulk(
@@ -144,13 +144,79 @@ def empty_film_index(request):
     scheme = schemes["film_scheme"]
     elastic_search = Elasticsearch(f"http://{ELASTIC_HOST}")
     try:
-        elastic_search.indices.delete("movies")
-    except:
+        elastic_search.indices.delete('movies')
+    except Exception:
         pass
     elastic_search.indices.create("movies", scheme)
 
     def teardown():
         """Удалить созданные для тестирования временные объекты"""
         elastic_search.indices.delete("movies")
+
+    request.addfinalizer(teardown)
+
+
+@pytest.fixture()
+def some_person(request):
+    """
+    Заполнить индекс ElasticSearch тестовыми записями персон
+    """
+    # Создаем схему индекса для поиска персон
+    with open("testdata/schemes.json") as fd:
+        schemes = json.load(fd)
+    scheme = schemes['person_scheme']
+    docs = [
+        {
+            "id": "23d3d644-5abe-11ec-b50c-5378d698a87b",
+            "full_name": "John Smith",
+            "birth_date": "01.01.2001",
+            "films": [{"id": "6fbe525a-5abe-11ec-b50c-5378d698a87b", "title": "John's film", "role": "actor"}],
+        }
+    ]
+    # Создаем поисковый индекс и заполняем документами
+    es = Elasticsearch(f"http://{ELASTIC_HOST}")
+    es.indices.create('persons', scheme)
+    helpers.bulk(
+        es,
+        [
+            {
+                '_index': 'persons',
+                '_id': doc["id"],
+                **doc
+            }
+            for doc in docs
+        ]
+    )
+
+    def teardown():
+        """Удалить созданные для тестирования временные объекты"""
+        for doc in docs:
+            es.delete('persons', doc["id"])
+        es.indices.delete('persons')
+
+    request.addfinalizer(teardown)
+
+
+@pytest.fixture()
+def empty_person_index(request):
+    """
+    Заполнить индекс ElasticSearch без тестовых записей
+    """
+    # Создаем схему индекса для поиска персон
+    with open("testdata/schemes.json") as fd:
+        schemes = json.load(fd)
+    scheme = schemes['person_scheme']
+    es = Elasticsearch(f"http://{ELASTIC_HOST}")
+    # FIXME: Индекс может уже существовать из-за хвостов прошлых ошибок
+    #        В рабочем варианте этого быть не должно, убрать потом
+    try:
+        es.indices.delete('persons')
+    except Exception:
+        pass
+    es.indices.create('persons', scheme)
+
+    def teardown():
+        """Удалить созданные для тестирования временные объекты"""
+        es.indices.delete('persons')
 
     request.addfinalizer(teardown)

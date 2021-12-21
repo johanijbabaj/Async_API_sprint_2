@@ -25,7 +25,9 @@ async def test_some_film_cache(some_film):
             assert data["title"] == "Some film"
             assert data["imdb_rating"] == 5.5
     redis = await aioredis.create_redis_pool(
-        ('redis', 6379), maxsize=20, password='password'
+        (os.getenv('REDIS_HOST', 'redis'), os.getenv('REDIS_PORT', 6379)),
+        maxsize=20,
+        password=os.getenv('REDIS_PASSWORD', 'password')
     )
     cached = await redis.get("bb74a838-584e-11ec-9885-c13c488d29c0")
     assert cached is not None
