@@ -52,12 +52,12 @@ class GenreService:
     async def _put_genre_to_cache(self, genre: Genre):
         await self.cache.set(str(genre.uuid), genre.json(), GENRE_CACHE_EXPIRE_IN_SECONDS)
 
-    async def get_by_film_id(self,
-                             film_uuid: Optional[UUID],
-                             sort: str,
-                             page_size: int,
-                             page_number: int
-                             ) -> List[GenreBrief]:
+    async def get_by_film_id(
+            self, film_uuid: Optional[UUID],
+            sort: str,
+            page_size: int,
+            page_number: int
+    ) -> List[GenreBrief]:
         """
             Получить список жанров, относящихся к определенному
             фильму (если фильм задан, иначе всех жанров).
@@ -70,12 +70,13 @@ class GenreService:
             await self._put_genres_to_cache(genres, film_uuid, sort, page_size, page_number)
         return genres
 
-    async def _get_by_film_id_from_storage(self,
-                                           film_uuid: Optional[UUID],
-                                           sort: str,
-                                           page_size: int,
-                                           page_number: int
-                                           ) -> List[GenreBrief]:
+    async def _get_by_film_id_from_storage(
+            self,
+            film_uuid: Optional[UUID],
+            sort: str,
+            page_size: int,
+            page_number: int
+    ) -> List[GenreBrief]:
         """
             Получить список жанров из ElasticSearch
         """
@@ -106,12 +107,13 @@ class GenreService:
         ]
         return genre_list
 
-    async def _get_genres_from_cache(self,
-                                     film_uuid: Optional[UUID],
-                                     sort: str,
-                                     page_size: int,
-                                     page_number: int
-                                     ) -> List[GenreBrief]:
+    async def _get_genres_from_cache(
+            self,
+            film_uuid: Optional[UUID],
+            sort: str,
+            page_size: int,
+            page_number: int
+    ) -> List[GenreBrief]:
         key = self._get_genre_key(film_uuid, sort, page_size, page_number)
         data = await self.cache.get(key)
         if not data:
@@ -119,13 +121,14 @@ class GenreService:
         genres = [GenreBrief(**genre) for genre in orjson.loads(data)]
         return genres
 
-    async def _put_genres_to_cache(self,
-                                   genres: List[GenreBrief],
-                                   film_uuid: Optional[UUID],
-                                   sort: str,
-                                   page_size: int,
-                                   page_number: int
-                                   ):
+    async def _put_genres_to_cache(
+            self,
+            genres: List[GenreBrief],
+            film_uuid: Optional[UUID],
+            sort: str,
+            page_size: int,
+            page_number: int
+    ):
         key = self._get_genre_key(film_uuid, sort, page_size, page_number)
         json = "[{}]".format(','.join(genre.json() for genre in genres))
         await self.cache.set(key, json, GENRE_CACHE_EXPIRE_IN_SECONDS)
