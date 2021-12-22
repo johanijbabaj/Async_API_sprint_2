@@ -1,6 +1,6 @@
 import logging
 from http import HTTPStatus
-from typing import List, Literal
+from typing import List, Literal, Optional
 from uuid import UUID
 
 from core.config import ErrorMessage
@@ -20,39 +20,12 @@ router = APIRouter()
 Модели ответа API
 """
 
-
 # С помощью декоратора регистрируем обработчик film_details
 # На обработку запросов по адресу <some_prefix>/some_id
 # Позже подключим роутер к корневому роутеру
 # И адрес запроса будет выглядеть так — /api/v1/film/some_id
 # В сигнатуре функции указываем тип данных, получаемый из адреса запроса (film_id: str)
 # И указываем тип возвращаемого объекта — Film
-# @router.get('/{film_id}', response_model=Film)
-# async def film_details(film_id: str, film_service: FilmService
-#       = Depends(get_film_service)) -> Film:
-#     film = await film_service.get_by_id(film_id)
-
-@router.get('/search')
-async def film_search(
-        query: str = Query(None, alias="query_string"),
-        page_size: int = Query(None, alias="page[size]"),
-        page_number: int = Query(None, alias="page[number]"),
-        film_service: FilmService = Depends(get_film_service)
-) -> List[FilmBriefApi]:
-    """
-    Примеры обращений, которые должны обрабатываться API
-    #GET /api/v1/film/search?query=star&page[size]=50&page[number]=1
-    """
-    logging.debug(f"Получили параметры {query=}-{type(query)},"
-                  f" {page_size=}-{type(page_size)}, {page_number=}-{type(page_number)}")
-    films = await film_service.search(query, page_size, page_number)
-    if not films:
-        # Если выборка пустая, отдаём 404 статус
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=ErrorMessage.FILM_NOT_FOUND)
-    # Перекладываем данные из models.Film в Film
-    return [FilmBriefApi(uuid=film.id, title=film.title, imdb_rating=film.imdb_rating) for film in films]
-
-
 @router.get('/{film_id}', response_model=FilmApi)
 async def film_details(
         film_id: str,
@@ -93,29 +66,48 @@ async def film_details(
 
 
 @router.get('/')
-async def film_list_by_genre(sort: Literal["-imdb_rating", "+imdb_rating"] = "-imdb_rating",
-                             filter_genre: UUID = Query(None, alias="filter[genre]"),
-                             page_size: int = Query(None, alias="page[size]"),
-                             page_number: int = Query(None, alias="page[number]"),
-                             film_service: FilmService = Depends(get_film_service)
-                             ) -> List[FilmBriefApi]:
+async def film_list(
+        sort: Literal["-imdb_rating", "+imdb_rating"] = "-imdb_rating",
+        filter_genre: Optional[UUID] = Query(None, alias="filter[genre]"),
+        page_size: int = Query(10, alias="page[size]"),
+        page_number: int = Query(1, alias="page[number]"),
+        film_service: FilmService = Depends(get_film_service)
+) -> List[FilmBriefApi]:
     """
-        Примеры обращений, которые должны обрабатываться API
-        #GET /api/v1/film?sort=-imdb_rating&page[size]=50&page[number]=1
-        #GET /api/v1/film?filter[genre]=<uuid:UUID>&sort=-imdb_rating&page[size]=50&page[number]=1
+    Примеры обращений, которые должны обрабатываться API
+    #GET /api/v1/film?sort=-imdb_rating&page[size]=50&page[number]=1
+    #GET /api/v1/film?filter[genre]=<uuid:UUID>&sort=-imdb_rating&page[size]=50&page[number]=1
     """
-
     logging.debug(f"Получили параметры {sort=}-{type(sort)}, {filter_genre=}-{type(filter_genre)},"
                   f" {page_size=}-{type(page_size)}, {page_number=}-{type(page_number)}")
     # Получаем список фильмов
     # Доработать сортировку ort=-imdb_rating
-    films = await film_service.get_by_genre_id(filter_genre, sort, page_size, page_number, None)
+    films = await film_service.get_list(filter_genre, sort, page_size, page_number)
     if not films:
         # Если выборка пустая, отдаём 404 статус
         # Желательно пользоваться уже определёнными HTTP-статусами, которые содержат enum
         # Такой код будет более поддерживаемым
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=ErrorMessage.FILM_NOT_FOUND)
     # Перекладываем данные из models.Film в Film
-    films_api = [FilmBriefApi(uuid=film.id, title=film.title, imdb_rating=film.imdb_rating)
-                 for film in films]
-    return films_api
+    return [FilmBriefApi(uuid=film.id, title=film.title, imdb_rating=film.imdb_rating) for film in films]
+
+
+@router.get('/search')
+async def film_search(
+        query: str = Query(None, alias="query_string"),
+        page_size: int = Query(10, alias="page[size]"),
+        page_number: int = Query(1, alias="page[number]"),
+        film_service: FilmService = Depends(get_film_service)
+) -> List[FilmBriefApi]:
+    """
+    Примеры обращений, которые должны обрабатываться API
+    #GET /api/v1/film/search?query=star&page[size]=50&page[number]=1
+    """
+    logging.debug(f"Получили параметры {query=}-{type(query)},"
+                  f" {page_size=}-{type(page_size)}, {page_number=}-{type(page_number)}")
+    films = await film_service.search(query, page_size, page_number)
+    if not films:
+        # Если выборка пустая, отдаём 404 статус
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=ErrorMessage.FILM_NOT_FOUND)
+    # Перекладываем данные из models.Film в Film
+    return [FilmBriefApi(uuid=film.id, title=film.title, imdb_rating=film.imdb_rating) for film in films]

@@ -3,6 +3,7 @@ import os
 from http import HTTPStatus
 
 import aiohttp
+import json
 import pytest
 
 # Строка с именем хоста и портом
@@ -12,15 +13,21 @@ API_HOST = os.getenv("API_HOST", "localhost:8000")
 @pytest.mark.asyncio
 async def test_some_genre(some_genre):  # pylint: disable=unused-argument
     """Проверяем, что тестовый элемент доступен по API"""
+    # Считать из файла с данными параметры тестового жанра
+    with open("testdata/some_genre.json") as docs_json:
+        docs = json.load(docs_json)
+        doc = docs[0]
+    # Проверить, что данные, возвращаемые API, совпадают с теми что
+    # в файле с тестовыми данными
     async with aiohttp.ClientSession() as session:
         async with session.get(
-            f"http://{API_HOST}/api/v1/genre/0b105f87-e0a5-45dc-8ce7-f8632088f390"
+            f"http://{API_HOST}/api/v1/genre/{doc['id']}"
         ) as ans:
             assert ans.status == HTTPStatus.OK
             data = await ans.json()
-            assert data["uuid"] == "0b105f87-e0a5-45dc-8ce7-f8632088f390"
-            assert data["name"] == "Western"
-            assert len(data["film_ids"]) == 2
+            assert data["uuid"] == doc['id']
+            assert data["name"] == doc['name']
+            assert len(data["film_ids"]) == len(doc['films'])
 
 
 @pytest.mark.asyncio

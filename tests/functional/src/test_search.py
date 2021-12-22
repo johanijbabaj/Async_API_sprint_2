@@ -2,6 +2,7 @@
 Тесты поиска фильмов по подстроке наименования фильма
 """
 
+import json
 import os
 from http import HTTPStatus
 
@@ -15,21 +16,18 @@ API_HOST = os.getenv("API_HOST", "localhost:8000")
 @pytest.mark.asyncio
 async def test_search_film(some_film, make_get_request):
     """Проверяем, что тестовый фильм доступен по API"""
-
+    # Считать из файла с данными параметры тестового фильма
+    with open("testdata/some_film.json") as docs_json:
+        docs = json.load(docs_json)
+        doc = docs[0]
+    # Проверить, что данные, возвращаемые API, совпадают с теми что
+    # в файле с тестовыми данными
     response = await make_get_request("/film/search", {"query_string": "Some"})
     assert response.status == HTTPStatus.OK
     data = response.body
-    assert data[0]["uuid"] == "bb74a838-584e-11ec-9885-c13c488d29c0"
-    assert data[0]["title"] == "Some film"
-    assert data[0]["imdb_rating"] == 5.5
-
-    # async with aiohttp.ClientSession() as session:
-    #     async with session.get(f"http://{API_HOST}/api/v1/film/search?query_string=Some") as ans:
-    #         assert ans.status == HTTPStatus.OK
-    #         data = await ans.json()
-    #         assert data[0]["uuid"] == "bb74a838-584e-11ec-9885-c13c488d29c0"
-    #         assert data[0]["title"] == "Some film"
-    #         assert data[0]["imdb_rating"] == 5.5
+    assert data[0]["uuid"] == doc["id"]
+    assert data[0]["title"] == doc["title"]
+    assert data[0]["imdb_rating"] == doc["imdb_rating"]
 
 
 @pytest.mark.asyncio
