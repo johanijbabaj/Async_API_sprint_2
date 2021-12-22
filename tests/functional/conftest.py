@@ -112,69 +112,6 @@ def some_film(request):
 
 
 @pytest.fixture()
-def some_search_film(request):
-    """
-    Заполнить индекс ElasticSearch тестовыми данными
-    """
-    # Создаем схему индекса для поиска фильмов
-    with open("testdata/schemes.json") as schemes_json:
-        schemes = json.load(schemes_json)
-    scheme = schemes["film_scheme"]
-    docs = [
-        {
-            "id": "bb74a838-584e-11ec-9885-c13c488d29c0",
-            "imdb_rating": 5.5,
-            "genre": "Action",
-            "title": "Some film",
-            "description": "Some film used for testing only",
-            "genres": [
-                {"id": "46e70470-592f-11ec-8b39-d99d30aa920b", "name": "Action"}
-            ],
-            "director": "John Smith",
-            "actors": [],
-            "writers": [],
-            "actors_names": [],
-            "writers_names": [],
-        },
-        {
-            "id": "7ab42811-0872-4305-b140-36546ee6e0b3",
-            "imdb_rating": 9.5,
-            "genre": "Comedy",
-            "title": "Funny film",
-            "description": "Funny film used for testing only",
-            "genres": [
-                {"id": "cec222f5-8550-41e0-80d2-5fb3abe9b5c6", "name": "Comedy"}
-            ],
-            "director": "Adam Smith",
-            "actors": [],
-            "writers": [],
-            "actors_names": [],
-            "writers_names": [],
-        },
-    ]
-
-    elastic_search = Elasticsearch(f"http://{ELASTIC_HOST}")
-    try:
-        elastic_search.indices.delete("movies")
-    except Exception:
-        pass
-    elastic_search.indices.create("movies", scheme)
-    helpers.bulk(
-        elastic_search,
-        [{"_index": "movies", "_id": doc["id"], **doc} for doc in docs],
-        refresh=True,
-    )
-
-    def teardown():
-        """Удалить созданные для тестирования временные объекты"""
-        for doc in docs:
-            elastic_search.delete("movies", doc["id"])
-        elastic_search.indices.delete("movies")
-
-    request.addfinalizer(teardown)
-
-
-@pytest.fixture()
 def empty_film_index(request):
     """
     Создать пустой индекс ElasticSearch
@@ -208,7 +145,7 @@ def some_person(request):
     # Создаем схему индекса для поиска персон
     with open("testdata/schemes.json") as fd:
         schemes = json.load(fd)
-    scheme = schemes['person_scheme']
+    scheme = schemes["person_scheme"]
     with open("testdata/some_person.json") as docs_json:
         docs = json.load(docs_json)
     # Создаем поисковый индекс и заполняем документами
