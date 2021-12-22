@@ -1,11 +1,21 @@
 import json
 import os
+from dataclasses import dataclass
 
 import pytest
 from elasticsearch import Elasticsearch, helpers
+from multidict import CIMultiDictProxy
 
 # Строка с именем хоста и портом
 ELASTIC_HOST = os.getenv("ELASTIC_HOST", "localhost:9200")
+SERVICE_URL = os.getenv("API_HOST", "localhost:8000")
+
+
+@dataclass
+class HTTPResponse:
+    body: dict
+    headers: CIMultiDictProxy[str]
+    status: int
 
 
 @pytest.fixture()
@@ -60,10 +70,10 @@ def empty_genre_index(request):
     # FIXME: Индекс может уже существовать из-за хвостов прошлых ошибок
     #        В рабочем варианте этого быть не должно, убрать потом
     try:
-        elastic_search.indices.delete('genres')
+        elastic_search.indices.delete("genres")
     except Exception:
         pass
-    elastic_search.indices.create('genres', scheme)
+    elastic_search.indices.create("genres", scheme)
 
     def teardown():
         """Удалить созданные для тестирования временные объекты"""
@@ -144,7 +154,7 @@ def empty_film_index(request):
     scheme = schemes["film_scheme"]
     elastic_search = Elasticsearch(f"http://{ELASTIC_HOST}")
     try:
-        elastic_search.indices.delete('movies')
+        elastic_search.indices.delete("movies")
     except Exception:
         pass
     elastic_search.indices.create("movies", scheme)
@@ -164,35 +174,31 @@ def some_person(request):
     # Создаем схему индекса для поиска персон
     with open("testdata/schemes.json") as fd:
         schemes = json.load(fd)
-    scheme = schemes['person_scheme']
+    scheme = schemes["person_scheme"]
     docs = [
         {
             "id": "23d3d644-5abe-11ec-b50c-5378d698a87b",
             "full_name": "John Smith",
             "birth_date": "01.01.2001",
-            "films": [{"id": "6fbe525a-5abe-11ec-b50c-5378d698a87b", "title": "John's film", "role": "actor"}],
+            "films": [
+                {
+                    "id": "6fbe525a-5abe-11ec-b50c-5378d698a87b",
+                    "title": "John's film",
+                    "role": "actor",
+                }
+            ],
         }
     ]
     # Создаем поисковый индекс и заполняем документами
     es = Elasticsearch(f"http://{ELASTIC_HOST}")
-    es.indices.create('persons', scheme)
-    helpers.bulk(
-        es,
-        [
-            {
-                '_index': 'persons',
-                '_id': doc["id"],
-                **doc
-            }
-            for doc in docs
-        ]
-    )
+    es.indices.create("persons", scheme)
+    helpers.bulk(es, [{"_index": "persons", "_id": doc["id"], **doc} for doc in docs])
 
     def teardown():
         """Удалить созданные для тестирования временные объекты"""
         for doc in docs:
-            es.delete('persons', doc["id"])
-        es.indices.delete('persons')
+            es.delete("persons", doc["id"])
+        es.indices.delete("persons")
 
     request.addfinalizer(teardown)
 
@@ -205,18 +211,36 @@ def empty_person_index(request):
     # Создаем схему индекса для поиска персон
     with open("testdata/schemes.json") as fd:
         schemes = json.load(fd)
-    scheme = schemes['person_scheme']
+    scheme = schemes["person_scheme"]
     es = Elasticsearch(f"http://{ELASTIC_HOST}")
     # FIXME: Индекс может уже существовать из-за хвостов прошлых ошибок
     #        В рабочем варианте этого быть не должно, убрать потом
     try:
-        es.indices.delete('persons')
+        es.indices.delete("persons")
     except Exception:
         pass
-    es.indices.create('persons', scheme)
+    es.indices.create("persons", scheme)
 
     def teardown():
         """Удалить созданные для тестирования временные объекты"""
-        es.indices.delete('persons')
+        es.indices.delete("persons")
 
     request.addfinalizer(teardown)
+
+
+@pytest.fixture
+def make_get_request(session):
+    """Фикстура для получения результата сформированного запроса"""
+
+    async def inner(query: str, params: dict = None) -> HTTPResponse:
+        params = params or {}
+        url = SERVICE_URL + "/api/v1" + query
+        async with session.get(url, params=params) as response:
+
+            return HTTPResponse(
+                body=await response.json(),
+                headers=response.headers,
+                status=response.status,
+            )
+
+    return inner
