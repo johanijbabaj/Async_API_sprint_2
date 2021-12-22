@@ -3,13 +3,18 @@ import json
 import os
 from dataclasses import dataclass
 
+import aiohttp
+import aioredis
 import pytest
 from elasticsearch import Elasticsearch, helpers
 from multidict import CIMultiDictProxy
 
 # Строка с именем хоста и портом
 ELASTIC_HOST = os.getenv("ELASTIC_HOST", "localhost:9200")
-SERVICE_URL = os.getenv("API_HOST", "localhost:8000")
+SERVICE_URL = "http://" + os.getenv("API_HOST", "fast_api:8000")
+REDIS_HOST = os.getenv("REDIS_HOST", "redis")
+REDIS_PORT = os.getenv("REDIS_PORT", "6379")
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "password")
 
 
 @dataclass
@@ -48,7 +53,9 @@ def some_genre(request):
         pass
     elastic_search.indices.create("genres", scheme)
     helpers.bulk(
-        elastic_search, [{"_index": "genres", "_id": doc["id"], **doc} for doc in docs]
+        elastic_search,
+        [{"_index": "genres", "_id": doc["id"], **doc} for doc in docs],
+        refresh=True,
     )
 
     def teardown():
@@ -132,7 +139,72 @@ def some_film(request):
         pass
     elastic_search.indices.create("movies", scheme)
     helpers.bulk(
-        elastic_search, [{"_index": "movies", "_id": doc["id"], **doc} for doc in docs]
+        elastic_search,
+        [{"_index": "movies", "_id": doc["id"], **doc} for doc in docs],
+        refresh=True,
+    )
+
+    def teardown():
+        """Удалить созданные для тестирования временные объекты"""
+        for doc in docs:
+            elastic_search.delete("movies", doc["id"])
+        elastic_search.indices.delete("movies")
+
+    request.addfinalizer(teardown)
+
+
+@pytest.fixture()
+def some_search_film(request):
+    """
+    Заполнить индекс ElasticSearch тестовыми данными
+    """
+    # Создаем схему индекса для поиска фильмов
+    with open("testdata/schemes.json") as schemes_json:
+        schemes = json.load(schemes_json)
+    scheme = schemes["film_scheme"]
+    docs = [
+        {
+            "id": "bb74a838-584e-11ec-9885-c13c488d29c0",
+            "imdb_rating": 5.5,
+            "genre": "Action",
+            "title": "Some film",
+            "description": "Some film used for testing only",
+            "genres": [
+                {"id": "46e70470-592f-11ec-8b39-d99d30aa920b", "name": "Action"}
+            ],
+            "director": "John Smith",
+            "actors": [],
+            "writers": [],
+            "actors_names": [],
+            "writers_names": [],
+        },
+        {
+            "id": "7ab42811-0872-4305-b140-36546ee6e0b3",
+            "imdb_rating": 9.5,
+            "genre": "Comedy",
+            "title": "Funny film",
+            "description": "Funny film used for testing only",
+            "genres": [
+                {"id": "cec222f5-8550-41e0-80d2-5fb3abe9b5c6", "name": "Comedy"}
+            ],
+            "director": "Adam Smith",
+            "actors": [],
+            "writers": [],
+            "actors_names": [],
+            "writers_names": [],
+        },
+    ]
+
+    elastic_search = Elasticsearch(f"http://{ELASTIC_HOST}")
+    try:
+        elastic_search.indices.delete("movies")
+    except Exception:
+        pass
+    elastic_search.indices.create("movies", scheme)
+    helpers.bulk(
+        elastic_search,
+        [{"_index": "movies", "_id": doc["id"], **doc} for doc in docs],
+        refresh=True,
     )
 
     def teardown():
@@ -162,7 +234,10 @@ def empty_film_index(request):
 
     def teardown():
         """Удалить созданные для тестирования временные объекты"""
-        elastic_search.indices.delete("movies")
+        try:
+            elastic_search.indices.delete("movies")
+        except Exception:
+            pass
 
     request.addfinalizer(teardown)
 
@@ -193,7 +268,11 @@ def some_person(request):
     # Создаем поисковый индекс и заполняем документами
     es = Elasticsearch(f"http://{ELASTIC_HOST}")
     es.indices.create("persons", scheme)
-    helpers.bulk(es, [{"_index": "persons", "_id": doc["id"], **doc} for doc in docs])
+    helpers.bulk(
+        es,
+        [{"_index": "persons", "_id": doc["id"], **doc} for doc in docs],
+        refresh=True,
+    )
 
     def teardown():
         """Удалить созданные для тестирования временные объекты"""
@@ -237,14 +316,24 @@ def make_get_request(session):
         params = params or {}
         url = SERVICE_URL + "/api/v1" + query
         async with session.get(url, params=params) as response:
-
+            try:
+                res_body = await response.json()
+            except Exception as E:
+                res_body = ""
             return HTTPResponse(
-                body=await response.json(),
+                body=res_body,
                 headers=response.headers,
                 status=response.status,
             )
 
     return inner
+
+
+@pytest.fixture(scope="session")
+async def session():
+    session = aiohttp.ClientSession()
+    yield session
+    await session.close()
 
 
 @pytest.yield_fixture(scope="session")
@@ -253,3 +342,14 @@ def event_loop(request):
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
+
+
+@pytest.fixture
+async def flush_redis(request):
+    try:
+        redis = await aioredis.create_redis_pool(
+            (REDIS_HOST, REDIS_PORT), maxsize=20, password=REDIS_PASSWORD
+        )
+    except Exception as e:
+        pass
+    await redis.flushall()
