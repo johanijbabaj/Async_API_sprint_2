@@ -6,6 +6,7 @@ import os
 from http import HTTPStatus
 
 import aiohttp
+import json
 import pytest
 
 # Строка с именем хоста и портом
@@ -16,35 +17,47 @@ API_HOST = os.getenv('API_HOST', 'localhost:8000')
 @pytest.mark.asyncio
 async def test_some_film(some_film):
     """Проверяем, что тестовый фильм доступен по API"""
+    # Считать из файла с данными параметры тестового фильма
+    with open("testdata/some_film.json") as docs_json:
+        docs = json.load(docs_json)
+        doc = docs[0]
+    # Проверить, что данные, возвращаемые API, совпадают с теми что
+    # в файле с тестовыми данными
     async with aiohttp.ClientSession() as session:
-        async with session.get(f"http://{API_HOST}/api/v1/film/bb74a838-584e-11ec-9885-c13c488d29c0") as ans:
+        async with session.get(f"http://{API_HOST}/api/v1/film/{doc['id']}") as ans:
             assert ans.status == HTTPStatus.OK
             data = await ans.json()
-            assert data["uuid"] == "bb74a838-584e-11ec-9885-c13c488d29c0"
-            assert data["title"] == "Some film"
-            assert data["imdb_rating"] == 5.5
+            assert data["uuid"] == doc['id']
+            assert data["title"] == doc['title']
+            assert data["imdb_rating"] == doc['imdb_rating']
 
 
 # @pytest.mark.skip(reason="no")
 @pytest.mark.asyncio
 async def test_film_list(some_film):
     """Проверяем, что тестовый фильм отображается в списке всех фильмов"""
+    # Считать из файла с данными параметры тестового фильма
+    with open("testdata/some_film.json") as docs_json:
+        docs = json.load(docs_json)
+        doc = docs[0]
+    # Проверить, что данные, возвращаемые API, совпадают с теми что
+    # в файле с тестовыми данными
     async with aiohttp.ClientSession() as session:
-        async with session.get(f"http://{API_HOST}/api/v1/film/bb74a838-584e-11ec-9885-c13c488d29c0") as ans:
+        async with session.get(f"http://{API_HOST}/api/v1/film/{doc['id']}") as ans:
             assert ans.status == HTTPStatus.OK
             data = await ans.json()
-            assert data["uuid"] == "bb74a838-584e-11ec-9885-c13c488d29c0"
-            assert data["title"] == "Some film"
-            assert data["imdb_rating"] == 5.5
+            assert data["uuid"] == doc['id']
+            assert data["title"] == doc['title']
+            assert data["imdb_rating"] == doc['imdb_rating']
     async with aiohttp.ClientSession() as session:
         async with session.get(f"http://{API_HOST}/api/v1/film") as ans:
             assert ans.status == HTTPStatus.OK
             data = await ans.json()
             assert isinstance(data, list)
-            assert isinstance(data, list) == 1
-            assert data[0]['uuid'] == "bb74a838-584e-11ec-9885-c13c488d29c0"
-            assert data[0]["title"] == "Some film"
-            assert data[0]["imdb_rating"] == 5.5
+            assert len(data) == len(docs)
+            assert data[0]['uuid'] == doc['id']
+            assert data[0]["title"] == doc['title']
+            assert data[0]["imdb_rating"] == doc['imdb_rating']
 
 
 @pytest.mark.asyncio
