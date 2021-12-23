@@ -10,12 +10,12 @@ import json
 import pytest
 
 # Строка с именем хоста и портом
-ELASTIC_HOST = os.getenv('ELASTIC_HOST', 'localhost:9200')
-API_HOST = os.getenv('API_HOST', 'localhost:8000')
+ELASTIC_HOST = os.getenv("ELASTIC_HOST", "localhost:9200")
+API_HOST = os.getenv("API_HOST", "localhost:8000")
 
 
 @pytest.mark.asyncio
-async def test_some_film(some_film):
+async def test_some_film(some_film, make_get_request):
     """Проверяем, что тестовый фильм доступен по API"""
     # Считать из файла с данными параметры тестового фильма
     with open("testdata/some_film.json") as docs_json:
@@ -23,18 +23,17 @@ async def test_some_film(some_film):
         doc = docs[0]
     # Проверить, что данные, возвращаемые API, совпадают с теми что
     # в файле с тестовыми данными
-    async with aiohttp.ClientSession() as session:
-        async with session.get(f"http://{API_HOST}/api/v1/film/{doc['id']}") as ans:
-            assert ans.status == HTTPStatus.OK
-            data = await ans.json()
-            assert data["uuid"] == doc['id']
-            assert data["title"] == doc['title']
-            assert data["imdb_rating"] == doc['imdb_rating']
+    response = await make_get_request(f"/film/doc['id']")
+    assert response.status == HTTPStatus.OK
+    data = response.body
+    assert data["uuid"] == doc['id']
+    assert data["title"] == doc['title']
+    assert data["imdb_rating"] == doc['imdb_rating']
 
 
 # @pytest.mark.skip(reason="no")
 @pytest.mark.asyncio
-async def test_film_list(some_film):
+async def test_film_list(some_film, make_get_request):
     """Проверяем, что тестовый фильм отображается в списке всех фильмов"""
     # Считать из файла с данными параметры тестового фильма
     with open("testdata/some_film.json") as docs_json:
@@ -42,13 +41,13 @@ async def test_film_list(some_film):
         doc = docs[0]
     # Проверить, что данные, возвращаемые API, совпадают с теми что
     # в файле с тестовыми данными
-    async with aiohttp.ClientSession() as session:
-        async with session.get(f"http://{API_HOST}/api/v1/film/{doc['id']}") as ans:
-            assert ans.status == HTTPStatus.OK
-            data = await ans.json()
-            assert data["uuid"] == doc['id']
-            assert data["title"] == doc['title']
-            assert data["imdb_rating"] == doc['imdb_rating']
+    response = await make_get_request(f"/film/{doc['id']}")
+    assert response.status == HTTPStatus.OK
+    data = response.body
+    assert data["uuid"] == doc['id']
+    assert data["title"] == doc['title']
+    assert data["imdb_rating"] == doc['imdb_rating']
+    # FIXME: Надо переделать на метод получения списка фильмом по жанру
     async with aiohttp.ClientSession() as session:
         async with session.get(f"http://{API_HOST}/api/v1/film") as ans:
             assert ans.status == HTTPStatus.OK
@@ -61,16 +60,14 @@ async def test_film_list(some_film):
 
 
 @pytest.mark.asyncio
-async def test_empty(empty_film_index):
+async def test_empty(empty_film_index, make_get_request):
     """Тест запускается без фикстур и API должен вернуть ошибку 404"""
-    async with aiohttp.ClientSession() as session:
-        async with session.get(f"http://{API_HOST}/api/v1/film") as ans:
-            assert ans.status == HTTPStatus.NOT_FOUND
+    response = await make_get_request("/film")
+    assert response.status == HTTPStatus.NOT_FOUND
 
 
 @pytest.mark.asyncio
-async def test_no_index():
+async def test_no_index(flush_redis, make_get_request):
     """Тест запускается без индекса и API должен вернуть ошибку 500"""
-    async with aiohttp.ClientSession() as session:
-        async with session.get(f"http://{API_HOST}/api/v1/film") as ans:
-            assert ans.status == HTTPStatus.INTERNAL_SERVER_ERROR
+    response = await make_get_request("/film/bb74a838-584e-11ec-9885-c13c488d29c0")
+    assert response.status == HTTPStatus.INTERNAL_SERVER_ERROR

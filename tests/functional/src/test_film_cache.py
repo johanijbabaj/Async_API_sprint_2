@@ -11,8 +11,8 @@ import json
 import pytest
 
 # Строка с именем хоста и портом
-ELASTIC_HOST = os.getenv('ELASTIC_HOST', 'localhost:9200')
-API_HOST = os.getenv('API_HOST', 'localhost:8000')
+ELASTIC_HOST = os.getenv("ELASTIC_HOST", "localhost:9200")
+API_HOST = os.getenv("API_HOST", "localhost:8000")
 
 
 @pytest.mark.asyncio
@@ -32,9 +32,9 @@ async def test_some_film_cache(some_film):
             assert data["title"] == doc['title']
             assert data["imdb_rating"] == doc['imdb_rating']
     redis = await aioredis.create_redis_pool(
-        (os.getenv('REDIS_HOST', 'redis'), os.getenv('REDIS_PORT', 6379)),
+        (os.getenv("REDIS_HOST", "redis"), os.getenv("REDIS_PORT", 6379)),
         maxsize=20,
-        password=os.getenv('REDIS_PASSWORD', 'password')
+        password=os.getenv("REDIS_PASSWORD", "password"),
     )
     cached = await redis.get(f"{doc['id']}")
     assert cached is not None
