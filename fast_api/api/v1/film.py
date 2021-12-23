@@ -76,10 +76,9 @@ async def film_details(
     # Если бы использовалась общая модель для бизнес-логики и формирования ответов API
     # вы бы предоставляли клиентам данные, которые им не нужны
     # и, возможно, данные, которые опасно возвращать
-
-    genre_list = [FilmGenreApi(uuid=genre.get("id"), name=genre.get("name")) for genre in film.genres or []]
-    actors_list = [FilmPeopleApi(uuid=actor.get("id"), name=actor.get("name")) for actor in film.actors or []]
-    writers_list = [FilmPeopleApi(uuid=writer.get("id"), name=writer.get("name")) for writer in film.writers or []]
+    genre_list = [FilmGenreApi(uuid=genre["id"], name=genre["name"]) for genre in film.genres or []]
+    actors_list = [FilmPeopleApi(uuid=actor["id"], full_name=actor["name"]) for actor in film.actors or []]
+    writers_list = [FilmPeopleApi(uuid=writer["id"], full_name=writer["name"]) for writer in film.writers or []]
 
     return FilmApi(
         uuid=film.uuid,
