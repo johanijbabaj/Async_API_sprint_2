@@ -6,6 +6,7 @@ import os
 from http import HTTPStatus
 
 import aiohttp
+import json
 import pytest
 
 # Строка с именем хоста и портом
@@ -16,28 +17,40 @@ API_HOST = os.getenv("API_HOST", "localhost:8000")
 @pytest.mark.asyncio
 async def test_some_person(some_person):  # pylint: disable=unused-argument
     """Проверяем, что тестовый человек доступен по API"""
+    # Считать из файла с данными параметры тестовой персоны
+    with open("testdata/some_person.json") as docs_json:
+        docs = json.load(docs_json)
+        doc = docs[0]
+    # Проверить, что данные, возвращаемые API, совпадают с теми что
+    # в файле с тестовыми данными
     async with aiohttp.ClientSession() as session:
         async with session.get(
-            f"http://{API_HOST}/api/v1/person/23d3d644-5abe-11ec-b50c-5378d698a87b"
+            f"http://{API_HOST}/api/v1/person/{doc['id']}"
         ) as ans:
             assert ans.status == HTTPStatus.OK
             data = await ans.json()
-            assert data["uuid"] == "23d3d644-5abe-11ec-b50c-5378d698a87b"
-            assert data["full_name"] == "John Smith"
+            assert data["uuid"] == doc['id']
+            assert data["full_name"] == doc['full_name']
 
 
 # @pytest.mark.skip(reason="no")
 @pytest.mark.asyncio
 async def test_person_list(some_person):  # pylint: disable=unused-argument
     """Проверяем, что тестовый человек отображается в списке всех людей"""
+    # Считать из файла с данными параметры тестовой персоны
+    with open("testdata/some_person.json") as docs_json:
+        docs = json.load(docs_json)
+        doc = docs[0]
+    # Проверить, что данные, возвращаемые API, совпадают с теми что
+    # в файле с тестовыми данными
     async with aiohttp.ClientSession() as session:
         async with session.get(f"http://{API_HOST}/api/v1/person") as ans:
             assert ans.status == HTTPStatus.OK
             data = await ans.json()
             assert isinstance(data, list)
-            assert len(data) == 1
-            assert data[0]["uuid"] == "23d3d644-5abe-11ec-b50c-5378d698a87b"
-            assert data[0]["full_name"] == "John Smith"
+            assert len(data) == len(docs)
+            assert data[0]["uuid"] == doc['id']
+            assert data[0]["full_name"] == doc['full_name']
 
 
 @pytest.mark.asyncio
