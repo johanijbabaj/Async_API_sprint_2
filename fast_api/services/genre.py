@@ -26,10 +26,9 @@ class GenreService:
         if not genre:
             genre = await self._get_from_storage(genre_id)
             if not genre:
-                return None
+                return []
             # Сохраняем фильм в кеш
             await self._put_to_cache(genre)
-
         return genre
 
     async def _get_from_storage(self, genre_id: str) -> Optional[Genre]:
@@ -40,13 +39,12 @@ class GenreService:
         # Спецификация API требует, чтобы поле идентификатора называлось UUID
         genre_info["uuid"] = genre_info["id"]
         genre_info.pop("id")
-
         return Genre(**genre_info)
 
     async def _get_from_cache(self, genre_id: str) -> Optional[Genre]:
         data = await self.cache.get(genre_id)
         if not data:
-            return None
+            return []
         return Genre.parse_raw(data)
 
     async def _put_to_cache(self, genre: Genre):
@@ -102,10 +100,7 @@ class GenreService:
         es_fields = ["id", "name", "description"]
         doc = await self.storage.search('genres', search_query, es_fields)
         genres_info = doc.get("hits").get("hits")
-        genre_list = [
-            GenreBrief(**genre.get("_source")) for genre in genres_info
-        ]
-        return genre_list
+        return [GenreBrief(**genre.get("_source")) for genre in genres_info]
 
     async def _get_list_from_cache(
             self,

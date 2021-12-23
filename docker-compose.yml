@@ -34,7 +34,7 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - static_volume:/data:ro
     ports:
-      - "8000:8000"
+#      - "8000:8000"
       - "80:80"
     networks:
       - movies_network
