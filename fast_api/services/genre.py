@@ -13,7 +13,7 @@ GENRE_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
 class GenreService:
     """
-        Сервис для получения жанра по идентификатору, или всех жанров фильма
+    Сервис для получения жанра по идентификатору, или всех жанров фильма
     """
 
     def __init__(self, cache: MemoryCache, storage: AbstractStorage):
@@ -22,17 +22,17 @@ class GenreService:
 
     async def get_by_id(self, genre_id: str) -> Optional[Genre]:
 
-        genre = await self._genre_from_cache(genre_id)
+        genre = await self._get_from_cache(genre_id)
         if not genre:
-            genre = await self._get_genre_from_storage(genre_id)
+            genre = await self._get_from_storage(genre_id)
             if not genre:
                 return None
             # Сохраняем фильм в кеш
-            await self._put_genre_to_cache(genre)
+            await self._put_to_cache(genre)
 
         return genre
 
-    async def _get_genre_from_storage(self, genre_id: str) -> Optional[Genre]:
+    async def _get_from_storage(self, genre_id: str) -> Optional[Genre]:
 
         es_fields = ["id", "name", "description", "films"]
         doc = await self.storage.get('genres', genre_id, es_fields)
@@ -43,16 +43,16 @@ class GenreService:
 
         return Genre(**genre_info)
 
-    async def _genre_from_cache(self, genre_id: str) -> Optional[Genre]:
+    async def _get_from_cache(self, genre_id: str) -> Optional[Genre]:
         data = await self.cache.get(genre_id)
         if not data:
             return None
         return Genre.parse_raw(data)
 
-    async def _put_genre_to_cache(self, genre: Genre):
+    async def _put_to_cache(self, genre: Genre):
         await self.cache.set(str(genre.uuid), genre.json(), GENRE_CACHE_EXPIRE_IN_SECONDS)
 
-    async def get_by_film_id(
+    async def get_list(
             self, film_uuid: Optional[UUID],
             sort: str,
             page_size: int,
@@ -62,15 +62,15 @@ class GenreService:
             Получить список жанров, относящихся к определенному
             фильму (если фильм задан, иначе всех жанров).
         """
-        genres = await self._get_genres_from_cache(film_uuid, sort, page_size, page_number)
+        genres = await self._get_list_from_cache(film_uuid, sort, page_size, page_number)
         if not genres:
-            genres = await self._get_by_film_id_from_storage(film_uuid, sort, page_size, page_number)
+            genres = await self._get_list_from_storage(film_uuid, sort, page_size, page_number)
             if not genres:
                 return []
-            await self._put_genres_to_cache(genres, film_uuid, sort, page_size, page_number)
+            await self._put_list_to_cache(genres, film_uuid, sort, page_size, page_number)
         return genres
 
-    async def _get_by_film_id_from_storage(
+    async def _get_list_from_storage(
             self,
             film_uuid: Optional[UUID],
             sort: str,
@@ -107,21 +107,21 @@ class GenreService:
         ]
         return genre_list
 
-    async def _get_genres_from_cache(
+    async def _get_list_from_cache(
             self,
             film_uuid: Optional[UUID],
             sort: str,
             page_size: int,
             page_number: int
     ) -> List[GenreBrief]:
-        key = self._get_genre_key(film_uuid, sort, page_size, page_number)
+        key = self._get_key(film_uuid, sort, page_size, page_number)
         data = await self.cache.get(key)
         if not data:
             return []
         genres = [GenreBrief(**genre) for genre in orjson.loads(data)]
         return genres
 
-    async def _put_genres_to_cache(
+    async def _put_list_to_cache(
             self,
             genres: List[GenreBrief],
             film_uuid: Optional[UUID],
@@ -129,11 +129,11 @@ class GenreService:
             page_size: int,
             page_number: int
     ):
-        key = self._get_genre_key(film_uuid, sort, page_size, page_number)
+        key = self._get_key(film_uuid, sort, page_size, page_number)
         json = "[{}]".format(','.join(genre.json() for genre in genres))
         await self.cache.set(key, json, GENRE_CACHE_EXPIRE_IN_SECONDS)
 
-    def _get_genre_key(self, *args):
+    def _get_key(self, *args):
         key = ("genres", args)
         return str(key)
 
