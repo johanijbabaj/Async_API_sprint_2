@@ -1,12 +1,12 @@
 import orjson
+
+from db.cache import MemoryCache, get_cache
+from db.storage import AbstractStorage, get_storage
+from fastapi import Depends
 from functools import lru_cache
+from models.genre import Genre, GenreBrief
 from typing import List, Optional
 from uuid import UUID
-
-from db.storage import AbstractStorage, get_storage
-from db.cache import MemoryCache, get_cache
-from fastapi import Depends
-from models.genre import Genre, GenreBrief
 
 GENRE_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 

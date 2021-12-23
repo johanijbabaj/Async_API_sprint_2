@@ -76,7 +76,7 @@ async def film_list(
     """
     Примеры обращений, которые должны обрабатываться API
     #GET /api/v1/film?sort=-imdb_rating&page[size]=50&page[number]=1
-    #GET /api/v1/film?filter[genre]=<uuid:UUID>&sort=-imdb_rating&page[size]=50&page[number]=1
+    #GET /api/v1/film?filter[genre]=fb58fd7f-7afd-447f-b833-e51e45e2a778&sort=-imdb_rating&page[size]=50&page[number]=1
     """
     logging.debug(f"Получили параметры {sort=}-{type(sort)}, {filter_genre=}-{type(filter_genre)},"
                   f" {page_size=}-{type(page_size)}, {page_number=}-{type(page_number)}")

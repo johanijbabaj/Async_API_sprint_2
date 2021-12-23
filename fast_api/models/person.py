@@ -5,7 +5,7 @@ from uuid import UUID
 from models._base import OrjsonModel
 
 
-class Person_API(OrjsonModel):
+class PersonAPI(OrjsonModel):
     """
         Возвращаемая информация о человеке - идентификатор,
         имя, дата рождения м список фильмов с его участием.
@@ -16,7 +16,7 @@ class Person_API(OrjsonModel):
     film_ids: List[str]
 
 
-class PersonBrief_API(OrjsonModel):
+class PersonBriefAPI(OrjsonModel):
     """
         Сокращенная информация о человеке - возвращается при запросе
         списка
