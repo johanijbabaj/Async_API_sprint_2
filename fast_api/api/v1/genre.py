@@ -42,11 +42,11 @@ async def genre_list(
     """
     Примеры обращений, которые должны обрабатываться API
     #GET /api/v1/genre?sort=name&page[size]=50&page[number]=1
-    #GET /api/v1/genre?filter[film]=<uuid:UUID>&sort=name&page[size]=50&page[number]=1
+    #GET /api/v1/genre?filter[film]=ff00b2a9-9e85-44af-922f-5f3504b82c15&sort=name.raw&page[size]=50&page[number]=1
     """
     logging.debug(f"Получили параметры {sort=}-{type(sort)}, {filter_film=}-{type(filter_film)},"
                   f" {page_size=}-{type(page_size)}, {page_number=}-{type(page_number)}")
-    genres = await genre_service.get_by_film_id(filter_film, sort, page_size, page_number)
+    genres = await genre_service.get_list(filter_film, sort, page_size, page_number)
     if not genres:
         # Если выборка пустая, отдаём 404 статус
         # Желательно пользоваться уже определёнными HTTP-статусами, которые содержат enum
