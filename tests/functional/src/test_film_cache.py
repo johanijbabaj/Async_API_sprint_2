@@ -10,24 +10,27 @@ import aioredis
 import pytest
 
 # Строка с именем хоста и портом
-ELASTIC_HOST = os.getenv('ELASTIC_HOST', 'localhost:9200')
-API_HOST = os.getenv('API_HOST', 'localhost:8000')
+ELASTIC_HOST = os.getenv("ELASTIC_HOST", "localhost:9200")
+API_HOST = os.getenv("API_HOST", "localhost:8000")
 
 
 @pytest.mark.asyncio
 async def test_some_film_cache(some_film):
     """Проверяем, что тестовый фильм кэшируется после запроса по API"""
+
     async with aiohttp.ClientSession() as session:
-        async with session.get(f"http://{API_HOST}/api/v1/film/bb74a838-584e-11ec-9885-c13c488d29c0") as ans:
+        async with session.get(
+            f"http://{API_HOST}/api/v1/film/bb74a838-584e-11ec-9885-c13c488d29c0"
+        ) as ans:
             assert ans.status == HTTPStatus.OK
             data = await ans.json()
             assert data["uuid"] == "bb74a838-584e-11ec-9885-c13c488d29c0"
             assert data["title"] == "Some film"
             assert data["imdb_rating"] == 5.5
     redis = await aioredis.create_redis_pool(
-        (os.getenv('REDIS_HOST', 'redis'), os.getenv('REDIS_PORT', 6379)),
+        (os.getenv("REDIS_HOST", "redis"), os.getenv("REDIS_PORT", 6379)),
         maxsize=20,
-        password=os.getenv('REDIS_PASSWORD', 'password')
+        password=os.getenv("REDIS_PASSWORD", "password"),
     )
     cached = await redis.get("bb74a838-584e-11ec-9885-c13c488d29c0")
     assert cached is not None
