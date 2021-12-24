@@ -2,11 +2,11 @@
 Тесты поиска фильмов по подстроке наименования фильма
 """
 
+import json
 import os
 from http import HTTPStatus
 
 import aiohttp
-import json
 import pytest
 
 # Строка с именем хоста и портом
@@ -25,17 +25,9 @@ async def test_search_film(some_film, make_get_request):
     response = await make_get_request("/film/search", {"query_string": "Some"})
     assert response.status == HTTPStatus.OK
     data = response.body
-    assert data[0]["uuid"] == doc['id']
-    assert data[0]["title"] == doc['title']
-    assert data[0]["imdb_rating"] == doc['imdb_rating']
-
-    # async with aiohttp.ClientSession() as session:
-    #     async with session.get(f"http://{API_HOST}/api/v1/film/search?query_string=Some") as ans:
-    #         assert ans.status == HTTPStatus.OK
-    #         data = await ans.json()
-    #         assert data[0]["uuid"] == doc['id']
-    #         assert data[0]["title"] == doc['title']
-    #         assert data[0]["imdb_rating"] == doc['imdb_rating']
+    assert data[0]["uuid"] == doc["id"]
+    assert data[0]["title"] == doc["title"]
+    assert data[0]["imdb_rating"] == doc["imdb_rating"]
 
 
 @pytest.mark.asyncio
