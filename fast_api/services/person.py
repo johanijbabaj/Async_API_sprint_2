@@ -5,20 +5,19 @@ from db.storage import AbstractStorage,get_storage
 from fastapi import Depends
 from functools import lru_cache
 from models.person import Person, PersonBrief
+from services.abstract import AbstractService
 from typing import List, Optional
 from uuid import UUID
 
-PERSON_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
-
-class PersonService:
+class PersonService(AbstractService):
     """
     Сервис для получения информации о человеке по идентификатору
     """
 
-    def __init__(self, cache: MemoryCache, storage: AbstractStorage):
-        self.cache = cache
-        self.storage = storage
+    def __init__(self, *args, **kwargs):
+        self.name = 'person'
+        super(PersonService, self).__init__(*args, **kwargs)
 
     async def get_by_id(self, person_id: str) -> Optional[Person]:
         """
@@ -57,7 +56,7 @@ class PersonService:
         """
         Запись данных о человеке в кэш
         """
-        await self.cache.set(str(person.uuid), person.json(), PERSON_CACHE_EXPIRE_IN_SECONDS)
+        await self.cache.set(str(person.uuid), person.json(), self.CACHE_EXPIRE_IN_SECONDS)
 
     async def get_list(
             self,
@@ -141,11 +140,7 @@ class PersonService:
     ):
         key = self._get_key(film_uuid, filter_name, sort, page_size, page_number)
         json = "[{}]".format(','.join(film.json() for film in persons))
-        await self.cache.set(key, json, PERSON_CACHE_EXPIRE_IN_SECONDS)
-
-    def _get_key(self, *args):
-        key = ("persons", args)
-        return str(key)
+        await self.cache.set(key, json, self.CACHE_EXPIRE_IN_SECONDS)
 
 
 @lru_cache()

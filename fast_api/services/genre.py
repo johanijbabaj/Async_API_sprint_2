@@ -5,23 +5,21 @@ from db.storage import AbstractStorage, get_storage
 from fastapi import Depends
 from functools import lru_cache
 from models.genre import Genre, GenreBrief
+from services.abstract import AbstractService
 from typing import List, Optional
 from uuid import UUID
 
-GENRE_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
-
-class GenreService:
+class GenreService(AbstractService):
     """
     Сервис для получения жанра по идентификатору, или всех жанров фильма
     """
 
-    def __init__(self, cache: MemoryCache, storage: AbstractStorage):
-        self.cache = cache
-        self.storage = storage
+    def __init__(self, *args, **kwargs):
+        self.name = 'genre'
+        super(GenreService, self).__init__(*args, **kwargs)
 
     async def get_by_id(self, genre_id: str) -> Optional[Genre]:
-
         genre = await self._get_from_cache(genre_id)
         if not genre:
             genre = await self._get_from_storage(genre_id)
@@ -32,7 +30,6 @@ class GenreService:
         return genre
 
     async def _get_from_storage(self, genre_id: str) -> Optional[Genre]:
-
         es_fields = ["id", "name", "description", "films"]
         doc = await self.storage.get('genres', genre_id, es_fields)
         genre_info = doc.get("_source")
@@ -48,7 +45,7 @@ class GenreService:
         return Genre.parse_raw(data)
 
     async def _put_to_cache(self, genre: Genre):
-        await self.cache.set(str(genre.uuid), genre.json(), GENRE_CACHE_EXPIRE_IN_SECONDS)
+        await self.cache.set(str(genre.uuid), genre.json(), self.CACHE_EXPIRE_IN_SECONDS)
 
     async def get_list(
             self, film_uuid: Optional[UUID],
@@ -126,11 +123,7 @@ class GenreService:
     ):
         key = self._get_key(film_uuid, sort, page_size, page_number)
         json = "[{}]".format(','.join(genre.json() for genre in genres))
-        await self.cache.set(key, json, GENRE_CACHE_EXPIRE_IN_SECONDS)
-
-    def _get_key(self, *args):
-        key = ("genres", args)
-        return str(key)
+        await self.cache.set(key, json, self.CACHE_EXPIRE_IN_SECONDS)
 
 
 @lru_cache()
