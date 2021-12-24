@@ -5,20 +5,19 @@ from db.storage import AbstractStorage, get_storage
 from fastapi import Depends
 from functools import lru_cache
 from models.film import Film, FilmBrief
+from services.abstract import AbstractService
 from typing import List, Optional
 from uuid import UUID
 
-FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
-
-class FilmService:
+class FilmService(AbstractService):
     """
     FilmService содержит бизнес-логику по работе с фильмами.
     """
 
-    def __init__(self, cache: MemoryCache, storage: AbstractStorage):
-        self.cache = cache
-        self.storage = storage
+    def __init__(self, *args, **kwargs):
+        self.name = 'film'
+        super(FilmService, self).__init__(*args, **kwargs)
 
     async def get_by_id(self, film_id: str) -> Optional[Film]:
 
@@ -47,7 +46,7 @@ class FilmService:
         return Film.parse_raw(data)
 
     async def _put_to_cache(self, film: Film):
-        await self.cache.set(str(film.uuid), film.json(), expire=FILM_CACHE_EXPIRE_IN_SECONDS)
+        await self.cache.set(str(film.uuid), film.json(), expire=self.CACHE_EXPIRE_IN_SECONDS)
 
     async def get_list(
             self,
@@ -120,7 +119,7 @@ class FilmService:
     ):
         key = self._get_key(filter_genre, sort, page_size, page_number, query)
         json = "[{}]".format(','.join(film.json() for film in films))
-        await self.cache.set(key, json, FILM_CACHE_EXPIRE_IN_SECONDS)
+        await self.cache.set(key, json, self.CACHE_EXPIRE_IN_SECONDS)
 
     async def search(
             self,
@@ -144,10 +143,6 @@ class FilmService:
             page_number: Optional[int],
     ) -> Optional[FilmBrief]:
         return await self._get_list_from_storage(None, "", page_size, page_number, query)
-
-    def _get_key(self, *args):
-        key = ("films", args)
-        return str(key)
 
 
 @lru_cache()
