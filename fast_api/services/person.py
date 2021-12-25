@@ -17,6 +17,7 @@ class PersonService(AbstractService):
 
     def __init__(self, *args, **kwargs):
         self.name = "person"
+        self.single_class = Person
         super().__init__(*args, **kwargs)
 
     async def get_by_id(self, person_id: str) -> Optional[Person]:
@@ -42,23 +43,6 @@ class PersonService(AbstractService):
         person_info["uuid"] = person_info["id"]
         person_info.pop("id")
         return Person(**person_info)
-
-    async def _get_from_cache(self, person_id: str) -> Optional[Person]:
-        """
-        Чтение данных о человеке из кэша
-        """
-        data = await self.cache.get(person_id)
-        if not data:
-            return []
-        return Person.parse_raw(data)
-
-    async def _put_to_cache(self, person: Person):
-        """
-        Запись данных о человеке в кэш
-        """
-        await self.cache.set(
-            str(person.uuid), person.json(), self.CACHE_EXPIRE_IN_SECONDS
-        )
 
     async def get_list(
         self,
