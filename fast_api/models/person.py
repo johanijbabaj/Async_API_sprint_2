@@ -42,4 +42,4 @@ class PersonBrief(OrjsonModel):
     """
     id: UUID
     full_name: str
-    birthdate: Optional[datetime.date]
+    birth_date: Optional[datetime.date]

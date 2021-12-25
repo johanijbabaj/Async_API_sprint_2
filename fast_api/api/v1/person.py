@@ -53,4 +53,4 @@ async def person_list(
         # Желательно пользоваться уже определёнными HTTP-статусами, которые содержат enum
         # Такой код будет более поддерживаемым
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='persons not found')
-    return [PersonBriefAPI(uuid=p.id, full_name=p.full_name, birth_date=p.birthdate) for p in persons]
+    return [PersonBriefAPI(uuid=p.id, full_name=p.full_name, birth_date=p.birth_date) for p in persons]
