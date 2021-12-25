@@ -5,17 +5,17 @@ from uuid import UUID
 
 from core.config import ErrorMessage
 from fastapi import APIRouter, Depends, HTTPException, Query
-from models.genre import Genre_API, GenreBrief_API
+from models.genre import GenreAPI, GenreBriefAPI
 from services.genre import GenreService, get_genre_service
 
 router = APIRouter()
 
 
-@router.get('/{genre_id}', response_model=Genre_API)
+@router.get('/{genre_id}', response_model=GenreAPI)
 async def genre_details(
         genre_id: str,
         genre_service: GenreService = Depends(get_genre_service)
-) -> Genre_API:
+) -> GenreAPI:
     """
     Пример обращений, которые должны обрабатываться API
     #GET /api/v1/genre/fb58fd7f-7afd-447f-b833-e51e45e2a778
@@ -23,7 +23,7 @@ async def genre_details(
     genre = await genre_service.get_by_id(genre_id)
     if not genre:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=ErrorMessage.GENRE_NOT_FOUND)
-    return Genre_API(
+    return GenreAPI(
         uuid=genre.uuid,
         name=genre.name,
         description=genre.description,
@@ -38,7 +38,7 @@ async def genre_list(
         page_size: int = Query(10, alias="page[size]"),
         page_number: int = Query(1, alias="page[number]"),
         genre_service: GenreService = Depends(get_genre_service)
-) -> List[GenreBrief_API]:
+) -> List[GenreBriefAPI]:
     """
     Примеры обращений, которые должны обрабатываться API
     #GET /api/v1/genre?sort=name&page[size]=50&page[number]=1
@@ -52,4 +52,4 @@ async def genre_list(
         # Желательно пользоваться уже определёнными HTTP-статусами, которые содержат enum
         # Такой код будет более поддерживаемым
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=ErrorMessage.GENRE_NOT_FOUND)
-    return [GenreBrief_API(uuid=genre.id, name=genre.name, description=genre.description) for genre in genres]
+    return [GenreBriefAPI(uuid=genre.id, name=genre.name, description=genre.description) for genre in genres]

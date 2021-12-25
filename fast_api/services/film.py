@@ -17,6 +17,7 @@ class FilmService(AbstractService):
 
     def __init__(self, *args, **kwargs):
         self.name = "film"
+        self.single_class = Film
         super().__init__(*args, **kwargs)
 
     async def get_by_id(self, film_id: str) -> Optional[Film]:
@@ -46,17 +47,6 @@ class FilmService(AbstractService):
         film_info["uuid"] = film_info["id"]
         film_info.pop("id")
         return Film(**film_info)
-
-    async def _get_from_cache(self, film_id: str) -> Optional[Film]:
-        data = await self.cache.get(film_id)
-        if not data:
-            return []
-        return Film.parse_raw(data)
-
-    async def _put_to_cache(self, film: Film):
-        await self.cache.set(
-            str(film.uuid), film.json(), expire=self.CACHE_EXPIRE_IN_SECONDS
-        )
 
     async def get_list(
         self,

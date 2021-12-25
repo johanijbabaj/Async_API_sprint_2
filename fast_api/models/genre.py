@@ -4,14 +4,14 @@ from uuid import UUID
 from models._base import OrjsonModel
 
 
-class Genre_API(OrjsonModel):
+class GenreAPI(OrjsonModel):
     uuid: UUID
     name: str
     description: Optional[str]
     film_ids: List[str]
 
 
-class GenreBrief_API(OrjsonModel):
+class GenreBriefAPI(OrjsonModel):
     uuid: UUID
     name: str
     description: Optional[str]

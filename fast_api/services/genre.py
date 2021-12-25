@@ -17,6 +17,7 @@ class GenreService(AbstractService):
 
     def __init__(self, *args, **kwargs):
         self.name = 'genre'
+        self.single_class = Genre
         super(GenreService, self).__init__(*args, **kwargs)
 
     async def get_by_id(self, genre_id: str) -> Optional[Genre]:
@@ -37,15 +38,6 @@ class GenreService(AbstractService):
         genre_info["uuid"] = genre_info["id"]
         genre_info.pop("id")
         return Genre(**genre_info)
-
-    async def _get_from_cache(self, genre_id: str) -> Optional[Genre]:
-        data = await self.cache.get(genre_id)
-        if not data:
-            return []
-        return Genre.parse_raw(data)
-
-    async def _put_to_cache(self, genre: Genre):
-        await self.cache.set(str(genre.uuid), genre.json(), self.CACHE_EXPIRE_IN_SECONDS)
 
     async def get_list(
             self, film_uuid: Optional[UUID],
