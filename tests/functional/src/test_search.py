@@ -22,7 +22,7 @@ async def test_search_film(some_film, make_get_request):
         doc = docs[0]
     # Проверить, что данные, возвращаемые API, совпадают с теми что
     # в файле с тестовыми данными
-    response = await make_get_request("/film/search", {"query_string": "Some"})
+    response = await make_get_request("/film/search/", {"query_string": "Some"})
     assert response.status == HTTPStatus.OK
     data = response.body
     assert data[0]["uuid"] == doc["id"]

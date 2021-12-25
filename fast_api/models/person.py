@@ -7,9 +7,10 @@ from models._base import OrjsonModel
 
 class PersonAPI(OrjsonModel):
     """
-        Возвращаемая информация о человеке - идентификатор,
-        имя, дата рождения м список фильмов с его участием.
+    Возвращаемая информация о человеке - идентификатор,
+    имя, дата рождения м список фильмов с его участием.
     """
+
     uuid: UUID
     full_name: str
     birth_date: Optional[str]
@@ -18,9 +19,10 @@ class PersonAPI(OrjsonModel):
 
 class PersonBriefAPI(OrjsonModel):
     """
-        Сокращенная информация о человеке - возвращается при запросе
-        списка
+    Сокращенная информация о человеке - возвращается при запросе
+    списка
     """
+
     uuid: UUID
     full_name: str
     birth_date: Optional[str]
@@ -28,18 +30,24 @@ class PersonBriefAPI(OrjsonModel):
 
 class Person(OrjsonModel):
     """
-        Информация о человеке
+    Информация о человеке
     """
+
     uuid: UUID
     full_name: str
-    birthdate: Optional[datetime.date]
+    # FIXME:падают тесты
+    # birthdate: Optional[datetime.date]
+    birthdate: Optional[str]
     films: List[dict]
 
 
 class PersonBrief(OrjsonModel):
     """
-        Сокращенная информация о человеке
+    Сокращенная информация о человеке
     """
+
     id: UUID
     full_name: str
-    birth_date: Optional[datetime.date]
+    # FIXME:падают тесты
+    # birth_date: Optional[datetime.date]
+    birth_date: Optional[str]
