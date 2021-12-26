@@ -23,7 +23,7 @@ async def test_some_film_cache(some_film, make_get_request):
         docs = json.load(docs_json)
         doc = docs[0]
         doc_id = doc["id"]
-    response = await make_get_request(f"/film/{doc_id}")
+    response = await make_get_request(f"/film/get/{doc_id}")
     assert response.status == HTTPStatus.OK
     data = response.body
     assert data["uuid"] == doc["id"]

@@ -23,7 +23,7 @@ async def test_some_film(some_film, make_get_request):
         doc = docs[0]
     # Проверить, что данные, возвращаемые API, совпадают с теми что
     # в файле с тестовыми данными
-    response = await make_get_request(f"/film/{doc['id']}")
+    response = await make_get_request(f"/film/get/{doc['id']}")
     assert response.status == HTTPStatus.OK
     data = response.body
     assert data["uuid"] == doc["id"]
@@ -31,7 +31,6 @@ async def test_some_film(some_film, make_get_request):
     assert data["imdb_rating"] == doc["imdb_rating"]
 
 
-# @pytest.mark.skip(reason="no")
 @pytest.mark.asyncio
 async def test_film_list(some_film, make_get_request):
     """Проверяем, что тестовый фильм отображается в списке всех фильмов"""
@@ -53,5 +52,5 @@ async def test_empty(empty_film_index, flush_redis, make_get_request):
 @pytest.mark.asyncio
 async def test_no_index(flush_redis, make_get_request):
     """Тест запускается без индекса и API должен вернуть ошибку 500"""
-    response = await make_get_request("/film/bb74a838-584e-11ec-9885-c13c488d29c0")
+    response = await make_get_request("/film/get/bb74a838-584e-11ec-9885-c13c488d29c0")
     assert response.status == HTTPStatus.INTERNAL_SERVER_ERROR

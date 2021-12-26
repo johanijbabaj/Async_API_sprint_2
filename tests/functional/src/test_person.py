@@ -31,13 +31,11 @@ async def test_some_person(
     assert data["full_name"] == doc["full_name"]
 
 
-# @pytest.mark.skip(reason="no")
 @pytest.mark.asyncio
 async def test_person_list(
     some_person, make_get_request
 ):  # pylint: disable=unused-argument
     """Проверяем, что тестовый человек отображается в списке всех людей"""
-
     # Считать из файла с данными параметры тестовой персоны
     with open("testdata/some_person.json") as docs_json:
         docs = json.load(docs_json)
